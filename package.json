@@ -11,6 +11,7 @@
     "test:pair": "node scripts/test-pair-resolution.mjs",
     "test:rwa": "node scripts/test-jupiter-rwa-map.mjs",
     "test:nav": "node scripts/test-navigator-gviz.mjs",
+    "test:labs-stables": "node scripts/test-labs-stables.mjs",
     "scrape:rwa": "node scripts/scrape-jupiter-portfolio-to-sheet.mjs"
   },
   "dependencies": {

@@ -892,6 +892,38 @@
         vertical-align: middle;
       }
 
+      .tool-apy-note {
+        display: block;
+        margin-top: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--text-secondary);
+        line-height: 1.3;
+        -webkit-text-fill-color: var(--text-secondary);
+      }
+
+      .tool-extra-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 12px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .tool-extra-link {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--accent-bright);
+        text-decoration: none;
+        border-bottom: 1px dashed rgba(79, 163, 255, 0.35);
+      }
+
+      .tool-extra-link:hover {
+        color: var(--white);
+      }
+
       .tool-desc {
         font-size: 13px;
         color: var(--text-secondary);
@@ -2880,6 +2912,9 @@
           filterRange: "Диапазон",
           filterReset: "Сбросить фильтры",
           filterBarAria: "Фильтры по платформе, блокчейну, комиссии и диапазону",
+          savedRateLabel: "Ставка при добавлении",
+          maturityUntil: "до",
+          extraLinksLabel: "Дополнительно",
         },
         en: {
           logo: "DeFi Labs",
@@ -2979,6 +3014,9 @@
           filterRange: "Range",
           filterReset: "Reset filters",
           filterBarAria: "Filters by platform, blockchain, fee tier, and price range",
+          savedRateLabel: "Rate at add",
+          maturityUntil: "until",
+          extraLinksLabel: "More links",
         },
       };
 
@@ -3046,7 +3084,8 @@
       }
       function getVisibleTools() {
         return allTools.filter(function (t) {
-          return VISIBLE_CATEGORY_IDS.indexOf(t.categoryId) !== -1;
+          if (VISIBLE_CATEGORY_IDS.indexOf(t.categoryId) === -1) return false;
+          return isLiveCompassTool(t);
         });
       }
       function categoryName(id) {
@@ -3241,8 +3280,245 @@
       function normalizeToolsList(arr) {
         if (!arr || !Array.isArray(arr)) return [];
         return arr.map(normalizeTool).filter(function (t) {
-          return !shouldSkipToolRow(t.categoryId, t.pair, t.name, t.platform);
+          return !shouldSkipToolRow(t.categoryId, t.pair, t.name, t.platform, t.link);
         });
+      }
+
+      var DISABLED_CURVE_MONAD_LP = "0x942644106b073e30d72c2c5d7529d5c296ea91ab";
+      var LABS_STABLE_STRATEGIES = [
+        {
+          id: "labs-pt-usd3",
+          status: "active",
+          protocol: "Pendle",
+          title: "Pendle · PT-USD3",
+          pair: "PT-USD3-17DEC2026",
+          chain: "Ethereum",
+          marketAddress: "0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e",
+          tokenAddress: "0x7f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d",
+          savedAprPct: "14.0",
+          rateKind: "review-saved",
+          publishedAt: "",
+          sourceUrl: "https://t.me/c/2520601362/233/740",
+          primaryUrl:
+            "https://app.pendle.finance/trade/markets/0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e/swap?chain=ethereum&view=pt&chart=price",
+          maturityAt: "2026-12-17T00:00:00.000Z",
+          descRu:
+            "14,0% — ставка базовой PT-позиции на момент разбора. Итоговая доходность конструкции с Morpho и Fluid зависит от плавающих ставок займа и размещения USDC и не является фиксированными 14%.",
+          descEn:
+            "14.0% is the saved PT-only review rate. A Morpho + Fluid stack depends on floating borrow and USDC deposit rates — do not treat the full construction as a locked 14%.",
+          extraLinks: [
+            {
+              labelRu: "Morpho · PT-USD3 / USDC",
+              labelEn: "Morpho · PT-USD3 / USDC",
+              url: "https://app.morpho.org/ethereum/variable/0xf8c5aa31ea6b2a068a9eddb46dd110cae57bf0f12be9583a3f9a818effecba89/pt-usd3-17dec2026-usdc#market",
+            },
+            {
+              labelRu: "Fluid Lite USDC",
+              labelEn: "Fluid Lite USDC",
+              url: "https://fluid.io/1/lite/usdc?mode=deposit",
+            },
+            {
+              labelRu: "Исходный разбор",
+              labelEn: "Source review",
+              url: "https://t.me/c/2520601362/233/740",
+            },
+          ],
+        },
+        {
+          id: "labs-pt-strcx",
+          status: "active",
+          protocol: "Pendle",
+          title: "PT-STRCx · Strategy",
+          pair: "PT-STRCx-26NOV2026",
+          chain: "Ethereum",
+          marketAddress: "0x8ce3a13852d13e0e991c677a8c6137584e2b7635",
+          tokenAddress: "0x599ef448e1d3378ed2dd7982d4b00615d9e5bf77",
+          savedAprPct: "22.1",
+          rateKind: "review-saved",
+          publishedAt: "2026-10-05",
+          sourceUrl: "https://t.me/c/2520601362/292/802",
+          primaryUrl:
+            "https://app.pendle.finance/trade/markets/0x8ce3a13852d13e0e991c677a8c6137584e2b7635/swap?chain=ethereum&view=pt&chart=price",
+          maturityAt: "2026-11-26T00:00:00.000Z",
+          descRu:
+            "PT на базе токенизированного STRC. Ставка сохранена на момент разбора; долларовый результат зависит также от стоимости расчётного актива.",
+          descEn:
+            "PT on tokenized STRC. The rate is saved from the review; dollar outcome also depends on the settlement asset price.",
+          extraLinks: [
+            {
+              labelRu: "Исходный разбор",
+              labelEn: "Source review",
+              url: "https://t.me/c/2520601362/292/802",
+            },
+          ],
+        },
+        {
+          id: "labs-fxb-20261231",
+          status: "active",
+          protocol: "Frax Finance",
+          title: "Frax Finance · FXB20261231",
+          pair: "FXB20261231 / FRAX",
+          chain: "Ethereum",
+          marketAddress: "0x76237bcfdbe8e06fb774663add96216961df4ff3",
+          tokenAddress: "0x76237bcfdbe8e06fb774663add96216961df4ff3",
+          savedAprPct: "16.0",
+          rateKind: "review-saved",
+          publishedAt: "",
+          sourceUrl: "https://t.me/c/2520601362/304/806",
+          primaryUrl:
+            "https://swap.cow.fi/#/1/limit/0x853d955acef822db058eb8505911ed77f175b99e/0x76237bcfdbe8e06fb774663add96216961df4ff3",
+          maturityAt: "2027-01-01T00:00:00.000Z",
+          descRu:
+            "При погашении 1 FXB конвертируется в 1 Legacy FRAX. Сохранённая ставка не гарантирует доходность в USDC или долларах.",
+          descEn:
+            "At maturity 1 FXB converts to 1 Legacy FRAX. The saved rate does not guarantee a USDC or dollar yield.",
+          extraLinks: [
+            {
+              labelRu: "График FXB/FRAX",
+              labelEn: "FXB/FRAX chart",
+              url: "https://www.geckoterminal.com/eth/pools/0xe035e27a8ed6842b478933820f90093d205f7098",
+            },
+            {
+              labelRu: "Облигации Frax",
+              labelEn: "Frax bonds",
+              url: "https://app.frax.finance/fxb/bonds",
+            },
+            {
+              labelRu: "Исходная стратегия",
+              labelEn: "Source strategy",
+              url: "https://t.me/c/2520601362/304/806",
+            },
+            {
+              labelRu: "Инструкция по входу",
+              labelEn: "Entry guide",
+              url: "https://t.me/c/2520601362/304/808",
+            },
+          ],
+        },
+      ];
+
+      function normalizeHexAddr(value) {
+        var m = String(value || "")
+          .toLowerCase()
+          .match(/0x[a-f0-9]{40}/);
+        return m ? m[0] : "";
+      }
+
+      function isDisabledCurveMonadPool(tool) {
+        var blob = [
+          tool && tool.link,
+          tool && tool.pair,
+          tool && tool.name,
+          tool && tool.platform,
+          tool && tool.desc,
+        ]
+          .map(function (x) {
+            return String(x || "").toLowerCase();
+          })
+          .join(" ");
+        return blob.indexOf(DISABLED_CURVE_MONAD_LP) !== -1;
+      }
+
+      function parseMaturityMs(maturityAt) {
+        var n = Date.parse(maturityAt);
+        return Number.isFinite(n) ? n : NaN;
+      }
+
+      function isLabsStrategyLive(strategy, nowMs) {
+        var now = nowMs == null ? Date.now() : nowMs;
+        if (!strategy || strategy.status === "disabled" || strategy.status === "matured") return false;
+        var mat = parseMaturityMs(strategy.maturityAt);
+        if (Number.isFinite(mat) && now >= mat) return false;
+        return true;
+      }
+
+      function isLiveCompassTool(tool, nowMs) {
+        var now = nowMs == null ? Date.now() : nowMs;
+        if (!tool) return false;
+        if (isDisabledCurveMonadPool(tool)) return false;
+        if (tool.strategyStatus === "disabled" || tool.strategyStatus === "matured") return false;
+        var mat = parseMaturityMs(tool.maturityAt);
+        if (Number.isFinite(mat) && now >= mat) return false;
+        return true;
+      }
+
+      function labsStableToTool(strategy, id) {
+        return normalizeTool({
+          id: id,
+          strategyId: strategy.id,
+          categoryId: "stables",
+          name: strategy.title,
+          platform: strategy.title,
+          protocol: strategy.protocol,
+          pair: strategy.pair,
+          apy: strategy.savedAprPct,
+          chain: strategy.chain,
+          link: strategy.primaryUrl,
+          extraLinks: strategy.extraLinks,
+          desc: strategy.descRu,
+          descEn: strategy.descEn,
+          rateKind: strategy.rateKind,
+          publishedAt: strategy.publishedAt || "",
+          sourceUrl: strategy.sourceUrl,
+          maturityAt: strategy.maturityAt,
+          strategyStatus: strategy.status,
+          marketAddress: strategy.marketAddress,
+          tokenAddress: strategy.tokenAddress,
+          skipTvl: true,
+          status: "active",
+        });
+      }
+
+      function applyLabsStableCatalog(tools, nowMs) {
+        var now = nowMs == null ? Date.now() : nowMs;
+        var knownIds = {};
+        var knownAddrs = {};
+        LABS_STABLE_STRATEGIES.forEach(function (s) {
+          knownIds[s.id] = true;
+          var addr = normalizeHexAddr(s.marketAddress);
+          if (addr) knownAddrs[addr] = true;
+        });
+        var base = (tools || []).filter(function (t) {
+          if (isDisabledCurveMonadPool(t)) return false;
+          if (t && t.strategyId && knownIds[t.strategyId]) return false;
+          var addr = normalizeHexAddr(t && t.link);
+          if (addr && knownAddrs[addr]) return false;
+          return true;
+        });
+        var nextId = 1;
+        base.forEach(function (t) {
+          var n = Number(t && t.id);
+          if (Number.isFinite(n) && n >= nextId) nextId = n + 1;
+        });
+        LABS_STABLE_STRATEGIES.forEach(function (s) {
+          if (!isLabsStrategyLive(s, now)) return;
+          base.push(labsStableToTool(s, nextId++));
+        });
+        return base;
+      }
+
+      var __labsVisibleSig = null;
+      function labsVisibleSignature() {
+        return getVisibleTools()
+          .filter(function (t) {
+            return t.strategyId;
+          })
+          .map(function (t) {
+            return t.strategyId;
+          })
+          .sort()
+          .join(",");
+      }
+
+      function syncLabsStableVisibility() {
+        var sig = labsVisibleSignature();
+        if (__labsVisibleSig === sig) return;
+        __labsVisibleSig = sig;
+        if (typeof renderDashboard === "function") renderDashboard();
+        if (currentCategory && typeof rerenderCurrentCategoryTools === "function") {
+          rerenderCurrentCategoryTools();
+        }
+        if (typeof updateFavoritesUI === "function") updateFavoritesUI();
       }
 
       /** Индексы колонок (0-based) — у листов ETH и RWA разная ширина блока «доходов». */
@@ -3605,6 +3881,16 @@
           var apyRaw = parseApyFromGvizCell(cells, cols);
           if (isSheetErrorCellValue(apyRaw)) apyRaw = "0";
           var link = sanitizeSheetCellForDisplay(parseLinkFromGvizCell(cells, cols), "#");
+          if (
+            isDisabledCurveMonadPool({
+              link: link,
+              pair: pair,
+              name: platform,
+              platform: platform,
+              chain: chain,
+            })
+          )
+            continue;
           var priceMin = gvizNumericCell(cells, cols.minPrice, categoryId);
           var priceMax = gvizNumericCell(cells, cols.maxPrice, categoryId);
           out.push({
@@ -3867,7 +4153,7 @@
               );
               return data;
             }
-            data.tools = other.concat(pool);
+            data.tools = applyLabsStableCatalog(other.concat(pool));
             console.log("DeFi Compass: пулы из листа ethereum (колонка Q)", counts);
             return data;
           });
@@ -4808,7 +5094,9 @@
         return /orca/i.test(String(platform || ""));
       }
 
-      function shouldSkipToolRow(catId, pair, name, platform) {
+      function shouldSkipToolRow(catId, pair, name, platform, link) {
+        if (isDisabledCurveMonadPool({ pair: pair, name: name, platform: platform, link: link }))
+          return true;
         if (catId === "rwa" && pairContainsEthOrBtc(pair, name, platform)) return true;
         if (catId === "bitcoin" && isExcludedBitcoinUsdcCbbtc(pair, platform)) return true;
         return false;
@@ -4932,6 +5220,48 @@
         var n = parseApyNumber(tool.apy);
         if (!Number.isFinite(n)) return t("noValue");
         return formatOneDecimal(n) + "%";
+      }
+
+      function isSavedReviewRate(tool) {
+        return tool && tool.rateKind === "review-saved";
+      }
+
+      function formatSavedRateNote(tool) {
+        if (!isSavedReviewRate(tool)) return "";
+        return (
+          '<span class="tool-apy-note">' + escapeHtml(t("savedRateLabel")) + "</span>"
+        );
+      }
+
+      function formatMaturityDateLabel(maturityAt) {
+        var ms = parseMaturityMs(maturityAt);
+        if (!Number.isFinite(ms)) return "";
+        var d = new Date(ms);
+        var dd = String(d.getUTCDate()).padStart(2, "0");
+        var mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+        var yyyy = d.getUTCFullYear();
+        return dd + "." + mm + "." + yyyy;
+      }
+
+      function renderToolExtraLinks(tool) {
+        var links = tool && tool.extraLinks;
+        if (!links || !links.length) return "";
+        var html = links
+          .map(function (item) {
+            var label = currentLang === "en" ? item.labelEn || item.labelRu : item.labelRu || item.labelEn;
+            if (!item.url || !label) return "";
+            return (
+              '<a class="tool-extra-link" href="' +
+              escapeHtml(item.url) +
+              '" target="_blank" rel="noopener noreferrer">' +
+              escapeHtml(label) +
+              "</a>"
+            );
+          })
+          .filter(Boolean)
+          .join("");
+        if (!html) return "";
+        return '<div class="tool-extra-links">' + html + "</div>";
       }
 
       function parseApyNumber(value) {
@@ -5099,6 +5429,7 @@
       }
 
       function renderTvlBadgePlaceholder(tool) {
+        if (tool && tool.skipTvl) return "";
         var key = tvlKeyForTool(tool);
         if (!key) return "";
         var cached = _tvlCache[key];
@@ -5477,6 +5808,9 @@
           status: tool.status || "active",
           desc: tool.desc || "",
           descEn: tool.descEn != null ? tool.descEn : tool.desc || "",
+          maturityAt: tool.maturityAt || "",
+          strategyId: tool.strategyId || "",
+          rateKind: tool.rateKind || "",
         };
       }
 
@@ -5512,6 +5846,17 @@
         try {
           localStorage.setItem(FAV_STORAGE_KEY, JSON.stringify(arr));
         } catch (e) {}
+      }
+
+      function favoriteItemIsLive(item) {
+        if (!item) return false;
+        if (isDisabledCurveMonadPool(item)) return false;
+        var live = (typeof allTools !== "undefined" ? allTools : []).find(function (t) {
+          return toolKey(t) === item.key;
+        });
+        if (live) return isLiveCompassTool(live);
+        if (item.maturityAt && Date.now() >= parseMaturityMs(item.maturityAt)) return false;
+        return true;
       }
 
       function isFavorite(tool) {
@@ -5559,7 +5904,9 @@
       function renderFavoritesPanelContent() {
         var box = document.getElementById("favoritesList");
         if (!box) return;
-        var list = getFavoritesList();
+        var list = getFavoritesList().filter(function (item) {
+          return favoriteItemIsLive(item);
+        });
         if (list.length === 0) {
           box.innerHTML =
             '<div class="favorites-empty">' + escapeHtml(t("favoritesEmpty")) + "</div>";
@@ -5701,6 +6048,10 @@
       }
 
       function formatPeriodDisplay(tool) {
+        if (tool && tool.maturityAt) {
+          var md = formatMaturityDateLabel(tool.maturityAt);
+          if (md) return t("maturityUntil") + " " + md;
+        }
         var p = tool.period != null ? String(tool.period).trim() : "";
         if (!p || isAbsurdPeriodValue(p)) {
           var fromOpen = periodFromOpenDateString(tool.openDate);
@@ -6051,6 +6402,10 @@
             applyLang();
           });
         });
+        setInterval(syncLabsStableVisibility, 10000);
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) syncLabsStableVisibility();
+        });
         var mobileMenuBtn = document.getElementById("mobileMenuBtn");
         var sidebar = document.getElementById("sidebar");
         var sidebarBackdrop = document.getElementById("sidebarBackdrop");
@@ -6086,10 +6441,11 @@
           categories = STATIC_NAV_CATEGORIES.slice();
         }
         if (data && data.tools && Array.isArray(data.tools)) {
-          allTools = normalizeToolsList(data.tools);
+          allTools = applyLabsStableCatalog(normalizeToolsList(data.tools));
         } else {
-          allTools = [];
+          allTools = applyLabsStableCatalog([]);
         }
+        __labsVisibleSig = labsVisibleSignature();
         var fromSheet = data && data.source === "sheets-direct";
         if (
           !fromSheet &&
@@ -6335,7 +6691,9 @@
 
       function renderHeatmap(query) {
         const container = document.getElementById("heatmapContainer");
-        var visible = getDashboardDisplayTools();
+        var visible = getDashboardDisplayTools().filter(function (tool) {
+          return !isSavedReviewRate(tool);
+        });
         if (query) {
           visible = visible.filter(function (tool) {
             return toolMatchesQuery(tool, query);
@@ -6568,7 +6926,9 @@
               "</div>" +
               '<div class="tool-apy">' +
               formatOneDecimal(tool.apy) +
-              "%</div>" +
+              "%" +
+              formatSavedRateNote(tool) +
+              "</div>" +
               "</div>" +
               chevron +
               "</div>" +
@@ -6576,6 +6936,7 @@
               (shouldShowToolCardDesc(tool, categoryId)
                 ? '<div class="tool-desc">' + escapeHtml(toolDesc(tool)) + "</div>"
                 : "") +
+              renderToolExtraLinks(tool) +
               '<div class="tool-meta"><span class="tool-period-pill"><span class="tool-period-glyph" aria-hidden="true">⏱</span><span class="tool-period-lbl">' +
               escapeHtml(t("period")) +
               '</span><span class="tool-period-val">' +
@@ -6645,6 +7006,9 @@
               "</td>" +
               '<td class="apy-cell">' +
               escapeHtml(formatApyDisplay(tool)) +
+              (isSavedReviewRate(tool)
+                ? '<div class="tool-apy-note">' + escapeHtml(t("savedRateLabel")) + "</div>"
+                : "") +
               "</td>" +
               '<td class="period-cell"><span class="table-period-chip">' +
               escapeHtml(formatPeriodDisplay(tool)) +

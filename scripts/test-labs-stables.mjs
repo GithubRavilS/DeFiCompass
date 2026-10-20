@@ -76,6 +76,19 @@ const rates = Object.fromEntries(
 assert(rates["labs-pt-usd3"] === "14.0", "saved 14.0");
 assert(rates["labs-pt-strcx"] === "22.1", "saved 22.1");
 assert(rates["labs-fxb-20261231"] === "16.0", "saved 16.0");
+merged
+  .filter((t) => t.strategyId)
+  .forEach((t) => {
+    assert(t.apy === t.savedAprPct, `${t.strategyId} APY is the stored annual rate`);
+  });
+assert(
+  merged
+    .filter((t) => t.strategyId)
+    .sort((a, b) => parseFloat(b.apy) - parseFloat(a.apy))
+    .map((t) => t.apy)
+    .join(",") === "22.1,16.0,14.0",
+  "sort uses saved annual rates",
+);
 
 const requiredKeys = [
   "id",

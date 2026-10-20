@@ -3482,7 +3482,7 @@
       }
 
       function labsStableToTool(strategy) {
-        return normalizeTool({
+        var tool = normalizeTool({
           id: strategy.id,
           strategyId: strategy.id,
           categoryId: "stables",
@@ -3513,6 +3513,9 @@
           skipTvl: true,
           status: strategy.status,
         });
+        tool.savedAprPct = String(strategy.savedAprPct);
+        tool.apy = tool.savedAprPct;
+        return tool;
       }
 
       function applyLabsStableCatalog(tools, nowMs) {
@@ -5257,8 +5260,15 @@
         return parts.join(" · ");
       }
 
+      function savedAnnualRate(tool) {
+        if (tool && tool.savedAprPct != null && String(tool.savedAprPct) !== "") {
+          return String(tool.savedAprPct);
+        }
+        return tool && tool.apy != null ? String(tool.apy) : "";
+      }
+
       function formatApyDisplay(tool) {
-        var n = parseApyNumber(tool.apy);
+        var n = parseApyNumber(isSavedReviewRate(tool) ? savedAnnualRate(tool) : tool.apy);
         if (!Number.isFinite(n)) return t("noValue");
         return formatOneDecimal(n) + "%";
       }
@@ -5600,7 +5610,7 @@
 
       /** Главная строка группы — макс. APY; при равенстве — уже диапазон. */
       function compareByHighestApyThenRange(a, b) {
-        var apyDiff = parseApyNumber(b.apy) - parseApyNumber(a.apy);
+        var apyDiff = parseApyNumber(savedAnnualRate(b)) - parseApyNumber(savedAnnualRate(a));
         if (apyDiff !== 0) return apyDiff;
         var wa = priceRangeWidth(a);
         var wb = priceRangeWidth(b);
@@ -7014,8 +7024,7 @@
               pairBlock +
               "</div>" +
               '<div class="tool-apy">' +
-              formatOneDecimal(tool.apy) +
-              "%" +
+              formatApyDisplay(tool) +
               formatSavedRateNote(tool) +
               "</div>" +
               "</div>" +
@@ -7268,7 +7277,9 @@
       function sortTools(tools) {
         const copy = [...tools];
         if (currentSort === "apy-desc") {
-          return copy.sort((a, b) => parseFloat(b.apy) - parseFloat(a.apy));
+          return copy.sort(function (a, b) {
+            return parseApyNumber(savedAnnualRate(b)) - parseApyNumber(savedAnnualRate(a));
+          });
         } else if (currentSort === "name") {
           return copy.sort((a, b) => a.name.localeCompare(b.name));
         }

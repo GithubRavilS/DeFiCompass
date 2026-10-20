@@ -2933,6 +2933,7 @@
           savedRateLabel: "Ставка при добавлении",
           savedRatePtOnly: "только базовая PT, не Morpho+Fluid",
           savedRatePtStrc: "PT 22,1% · воркшоп 5 октября, не дивиденд STRC 12%",
+          savedRateFxb: "сохранённый ориентир, без пересчёта к погашению",
           maturityUntil: "до",
           ptIssueUntil: "PT-выпуск до",
           extraLinksLabel: "Дополнительно",
@@ -3038,6 +3039,7 @@
           savedRateLabel: "Rate at add",
           savedRatePtOnly: "base PT only, not Morpho+Fluid",
           savedRatePtStrc: "PT 22.1% · 5 Oct workshop, not the 12% STRC dividend",
+          savedRateFxb: "saved review rate, not pulled to maturity",
           maturityUntil: "until",
           ptIssueUntil: "PT issue until",
           extraLinksLabel: "More links",
@@ -3390,15 +3392,16 @@
           tokenAddress: "0x76237bcfdbe8e06fb774663add96216961df4ff3",
           savedAprPct: "16.0",
           rateKind: "review-saved",
+          rateScope: "saved-fxb",
           publishedAt: "",
           sourceUrl: "https://t.me/c/2520601362/304/806",
           primaryUrl:
             "https://swap.cow.fi/#/1/limit/0x853d955acef822db058eb8505911ed77f175b99e/0x76237bcfdbe8e06fb774663add96216961df4ff3",
           maturityAt: "2027-01-01T00:00:00.000Z",
           descRu:
-            "При погашении 1 FXB конвертируется в 1 Legacy FRAX. Сохранённая ставка не гарантирует доходность в USDC или долларах.",
+            "При погашении 1 FXB конвертируется в 1 Legacy FRAX. 16,0% годовых — сохранённый ориентир исходного разбора, его не пересчитывают ежедневно по уменьшающемуся сроку до погашения. Сохранённая ставка не гарантирует доходность в USDC или долларах.",
           descEn:
-            "At maturity 1 FXB converts to 1 Legacy FRAX. The saved rate does not guarantee a USDC or dollar yield.",
+            "At maturity 1 FXB converts to 1 Legacy FRAX. The 16.0% APY is the saved review figure and is not recalculated daily as time to maturity shrinks. The saved rate does not guarantee a USDC or dollar yield.",
           extraLinks: [
             {
               labelRu: "График FXB/FRAX",
@@ -5260,6 +5263,7 @@
         var note = t("savedRateLabel");
         if (tool.rateScope === "pt-only") note += " · " + t("savedRatePtOnly");
         if (tool.rateScope === "pt-strcx") note += " · " + t("savedRatePtStrc");
+        if (tool.rateScope === "saved-fxb") note += " · " + t("savedRateFxb");
         return '<span class="tool-apy-note">' + escapeHtml(note) + "</span>";
       }
 

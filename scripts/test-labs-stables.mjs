@@ -77,4 +77,53 @@ assert(rates["labs-pt-usd3"] === "14.0", "saved 14.0");
 assert(rates["labs-pt-strcx"] === "22.1", "saved 22.1");
 assert(rates["labs-fxb-20261231"] === "16.0", "saved 16.0");
 
+const requiredKeys = [
+  "id",
+  "protocol",
+  "chain",
+  "marketAddress",
+  "tokenAddress",
+  "savedAprPct",
+  "rateKind",
+  "publishedAt",
+  "sourceUrl",
+  "primaryUrl",
+  "maturityAt",
+  "status",
+];
+LABS_STABLE_STRATEGIES.forEach((s) => {
+  requiredKeys.forEach((k) => {
+    assert(Object.prototype.hasOwnProperty.call(s, k), `${s.id} missing ${k}`);
+  });
+  assert(s.rateKind === "review-saved", `${s.id} rateKind`);
+  assert(s.liveEntryAprPct == null, `${s.id} live entry stays a separate empty field`);
+  assert(Array.isArray(s.extraLinks), `${s.id} extraLinks`);
+});
+
+const sheetOverwrite = applyLabsStableCatalog(
+  [
+    {
+      categoryId: "stables",
+      name: "Pendle PT-USD3 live",
+      apy: "99.9",
+      chain: "Ethereum",
+      link: "https://app.pendle.finance/trade/markets/0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e/swap?chain=ethereum",
+    },
+  ],
+  beforeMat,
+);
+const usd3Row = sheetOverwrite.find((t) => t.strategyId === "labs-pt-usd3");
+assert(
+  usd3Row.apy === "14.0" && usd3Row.savedAprPct === "14.0",
+  "sheet APY must not overwrite saved 14.0",
+);
+assert(
+  !sheetOverwrite.some((t) => String(t.apy) === "99.9"),
+  "live sheet duplicate of known market dropped",
+);
+assert(
+  usd3Row.liveEntryAprPct == null,
+  "future live entry rate is a separate field, not the card APY",
+);
+
 console.log("test-labs-stables: ok");

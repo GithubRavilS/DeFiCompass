@@ -111,6 +111,10 @@ LABS_STABLE_STRATEGIES.forEach((s) => {
     assert(Object.prototype.hasOwnProperty.call(s, k), `${s.id} missing ${k}`);
   });
   assert(s.rateKind === "review-saved", `${s.id} rateKind`);
+  assert(
+    s.rateKindLabel === "сохранённая ставка исходного разбора",
+    `${s.id} rate type is the original review rate`,
+  );
   assert(allowedStatus.has(s.status), `${s.id} status`);
   assert(typeof s.publishedAt === "string", `${s.id} publishedAt stored, not invented`);
   assert(s.liveEntryAprPct == null, `${s.id} live entry stays a separate empty field`);
@@ -169,6 +173,10 @@ assert(
 );
 assert(stored.savedAprPct === "14.0", "saved annual rate on live row");
 assert(stored.rateKind === "review-saved", "rate kind is original review");
+assert(
+  stored.rateKindLabel === "сохранённая ставка исходного разбора",
+  "live row stores the original-review rate type",
+);
 assert(stored.sourceUrl === usd3.sourceUrl, "publication URL on live row");
 assert(stored.primaryUrl === usd3.primaryUrl, "primary open URL on live row");
 assert(

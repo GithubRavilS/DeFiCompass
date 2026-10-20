@@ -3477,9 +3477,9 @@
         return true;
       }
 
-      function labsStableToTool(strategy, id) {
+      function labsStableToTool(strategy) {
         return normalizeTool({
-          id: id,
+          id: strategy.id,
           strategyId: strategy.id,
           categoryId: "stables",
           name: strategy.title,
@@ -3526,14 +3526,9 @@
           if (addr && knownAddrs[addr]) return false;
           return true;
         });
-        var nextId = 1;
-        base.forEach(function (t) {
-          var n = Number(t && t.id);
-          if (Number.isFinite(n) && n >= nextId) nextId = n + 1;
-        });
         LABS_STABLE_STRATEGIES.forEach(function (s) {
           if (!isLabsStrategyLive(s, now)) return;
-          base.push(labsStableToTool(s, nextId++));
+          base.push(labsStableToTool(s));
         });
         return base;
       }
@@ -5859,6 +5854,7 @@
       }
 
       function toolKey(tool) {
+        if (tool && tool.strategyId) return "strategy:" + String(tool.strategyId);
         return (
           String(tool.id) +
           "|" +
@@ -5868,6 +5864,12 @@
           "|" +
           (tool.link || "")
         );
+      }
+
+      function sameFavoriteIdentity(item, tool) {
+        if (!item || !tool) return false;
+        if (item.strategyId && tool.strategyId && item.strategyId === tool.strategyId) return true;
+        return item.key === toolKey(tool);
       }
 
       function snapshotTool(tool) {
@@ -5898,7 +5900,7 @@
         }
         if (!d && typeof allTools !== "undefined" && allTools && allTools.length) {
           var live = allTools.find(function (t) {
-            return toolKey(t) === item.key;
+            return sameFavoriteIdentity(item, t);
           });
           if (live && typeof toolDesc === "function") d = String(toolDesc(live) || "").trim();
         }
@@ -5927,7 +5929,7 @@
         if (!item) return false;
         if (isDisabledCurveMonadPool(item)) return false;
         var live = (typeof allTools !== "undefined" ? allTools : []).find(function (t) {
-          return toolKey(t) === item.key;
+          return sameFavoriteIdentity(item, t);
         });
         if (live) return isLiveCompassTool(live);
         if (item.maturityAt && Date.now() >= parseMaturityMs(item.maturityAt)) return false;
@@ -5935,9 +5937,8 @@
       }
 
       function isFavorite(tool) {
-        var k = toolKey(tool);
         return getFavoritesList().some(function (x) {
-          return x.key === k;
+          return sameFavoriteIdentity(x, tool);
         });
       }
 
@@ -5945,7 +5946,7 @@
         var list = getFavoritesList();
         var snap = snapshotTool(tool);
         var idx = list.findIndex(function (x) {
-          return x.key === snap.key;
+          return sameFavoriteIdentity(x, tool);
         });
         if (idx >= 0) list.splice(idx, 1);
         else list.push(snap);

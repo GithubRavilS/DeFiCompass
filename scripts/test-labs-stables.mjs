@@ -106,7 +106,20 @@ LABS_STABLE_STRATEGIES.forEach((s) => {
 });
 
 const stored = merged.find((t) => t.strategyId === "labs-pt-usd3");
+assert(usd3.id === "labs-pt-usd3", "catalog id is stable");
+assert(stored.id === "labs-pt-usd3", "live row id is the catalog id");
 assert(stored.strategyId === "labs-pt-usd3", "stable id on live row");
+const shifted = applyLabsStableCatalog(
+  [
+    { id: 1, categoryId: "stables", name: "A", apy: "1" },
+    { id: 40, categoryId: "stables", name: "B", apy: "2" },
+  ],
+  beforeMat,
+);
+assert(
+  shifted.find((t) => t.strategyId === "labs-pt-usd3").id === "labs-pt-usd3",
+  "sheet refresh must not mint a new numeric id",
+);
 assert(stored.protocol === "Pendle", "protocol on live row");
 assert(stored.chain === "Ethereum", "chain on live row");
 assert(stored.marketAddress === "0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e", "market on live row");

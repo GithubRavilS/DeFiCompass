@@ -2931,6 +2931,7 @@
           filterReset: "Сбросить фильтры",
           filterBarAria: "Фильтры по платформе, блокчейну, комиссии и диапазону",
           savedRateLabel: "Ставка при добавлении",
+          savedRatePtOnly: "только базовая PT, не Morpho+Fluid",
           maturityUntil: "до",
           extraLinksLabel: "Дополнительно",
         },
@@ -3033,6 +3034,7 @@
           filterReset: "Reset filters",
           filterBarAria: "Filters by platform, blockchain, fee tier, and price range",
           savedRateLabel: "Rate at add",
+          savedRatePtOnly: "base PT only, not Morpho+Fluid",
           maturityUntil: "until",
           extraLinksLabel: "More links",
         },
@@ -3315,15 +3317,16 @@
           tokenAddress: "0x7f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d",
           savedAprPct: "14.0",
           rateKind: "review-saved",
+          rateScope: "pt-only",
           publishedAt: "",
           sourceUrl: "https://t.me/c/2520601362/233/740",
           primaryUrl:
             "https://app.pendle.finance/trade/markets/0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e/swap?chain=ethereum&view=pt&chart=price",
           maturityAt: "2026-12-17T00:00:00.000Z",
           descRu:
-            "14,0% — ставка базовой PT-позиции на момент разбора. Итоговая доходность конструкции с Morpho и Fluid зависит от плавающих ставок займа и размещения USDC и не является фиксированными 14%.",
+            "Важное различие: 14% относится к базовой PT-позиции. Итоговая доходность полной конструкции с Morpho и Fluid зависит от плавающих ставок займа и размещения USDC. Не обозначать всю комбинированную стратегию как фиксированные 14%.",
           descEn:
-            "14.0% is the saved PT-only review rate. A Morpho + Fluid stack depends on floating borrow and USDC deposit rates — do not treat the full construction as a locked 14%.",
+            "Important: 14% is the base PT position only. The Morpho + Fluid construction depends on floating borrow and USDC deposit rates. Do not treat the full stack as a locked 14%.",
           extraLinks: [
             {
               labelRu: "Morpho · залог PT-USD3 / займ USDC",
@@ -3476,6 +3479,7 @@
           desc: strategy.descRu,
           descEn: strategy.descEn,
           rateKind: strategy.rateKind,
+          rateScope: strategy.rateScope || "",
           publishedAt: strategy.publishedAt || "",
           sourceUrl: strategy.sourceUrl,
           maturityAt: strategy.maturityAt,
@@ -5246,9 +5250,9 @@
 
       function formatSavedRateNote(tool) {
         if (!isSavedReviewRate(tool)) return "";
-        return (
-          '<span class="tool-apy-note">' + escapeHtml(t("savedRateLabel")) + "</span>"
-        );
+        var note = t("savedRateLabel");
+        if (tool.rateScope === "pt-only") note += " · " + t("savedRatePtOnly");
+        return '<span class="tool-apy-note">' + escapeHtml(note) + "</span>";
       }
 
       function formatMaturityDateLabel(maturityAt) {
@@ -7050,9 +7054,7 @@
               "</td>" +
               '<td class="apy-cell">' +
               escapeHtml(formatApyDisplay(tool)) +
-              (isSavedReviewRate(tool)
-                ? '<div class="tool-apy-note">' + escapeHtml(t("savedRateLabel")) + "</div>"
-                : "") +
+              formatSavedRateNote(tool) +
               "</td>" +
               '<td class="period-cell"><span class="table-period-chip">' +
               escapeHtml(formatPeriodDisplay(tool)) +

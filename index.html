@@ -905,19 +905,37 @@
 
       .tool-extra-links {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+        flex-direction: column;
+        gap: 6px;
         margin: 0 0 12px;
+        padding: 10px 12px;
+        border: 1px solid rgba(79, 163, 255, 0.22);
+        border-radius: 10px;
+        background: rgba(47, 128, 237, 0.08);
         position: relative;
         z-index: 1;
       }
 
+      .tool-extra-links-label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
+
+      .tool-extra-links-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
       .tool-extra-link {
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
         color: var(--accent-bright);
         text-decoration: none;
-        border-bottom: 1px dashed rgba(79, 163, 255, 0.35);
+        line-height: 1.35;
       }
 
       .tool-extra-link:hover {
@@ -5243,9 +5261,26 @@
         return dd + "." + mm + "." + yyyy;
       }
 
+      function getToolExtraLinks(tool) {
+        var links = (tool && tool.extraLinks ? tool.extraLinks.slice() : []) || [];
+        if (tool && tool.sourceUrl) {
+          var hasSource = links.some(function (item) {
+            return String(item && item.url) === String(tool.sourceUrl);
+          });
+          if (!hasSource) {
+            links.push({
+              labelRu: "Исходный разбор",
+              labelEn: "Source review",
+              url: tool.sourceUrl,
+            });
+          }
+        }
+        return links;
+      }
+
       function renderToolExtraLinks(tool) {
-        var links = tool && tool.extraLinks;
-        if (!links || !links.length) return "";
+        var links = getToolExtraLinks(tool);
+        if (!links.length) return "";
         var html = links
           .map(function (item) {
             var label = currentLang === "en" ? item.labelEn || item.labelRu : item.labelRu || item.labelEn;
@@ -5261,7 +5296,15 @@
           .filter(Boolean)
           .join("");
         if (!html) return "";
-        return '<div class="tool-extra-links">' + html + "</div>";
+        return (
+          '<div class="tool-extra-links">' +
+          '<div class="tool-extra-links-label">' +
+          escapeHtml(t("extraLinksLabel")) +
+          "</div>" +
+          '<div class="tool-extra-links-list">' +
+          html +
+          "</div></div>"
+        );
       }
 
       function parseApyNumber(value) {
@@ -7000,6 +7043,7 @@
               '<div class="pool-battle-table-name">' +
               renderPoolBattleInstrumentHead(tool) +
               rangeHtml +
+              renderToolExtraLinks(tool) +
               "</div></div></td>" +
               "<td>" +
               escapeHtml(tool.pair || "—") +

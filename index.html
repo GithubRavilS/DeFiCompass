@@ -5926,6 +5926,7 @@
           publishedAt: tool.publishedAt || "",
           sourceUrl: tool.sourceUrl || "",
           primaryUrl: tool.primaryUrl || tool.link || "",
+          extraLinks: Array.isArray(tool.extraLinks) ? tool.extraLinks.slice() : [],
         };
       }
 
@@ -6055,6 +6056,7 @@
               "</div>" +
               pairLine +
               descBlock +
+              renderToolExtraLinks(item) +
               '<div class="fav-mini-meta">' +
               escapeHtml(categoryName(item.categoryId)) +
               " · APY " +

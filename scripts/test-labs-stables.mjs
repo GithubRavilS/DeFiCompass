@@ -240,6 +240,33 @@ LABS_STABLE_STRATEGIES.forEach((s) => {
   );
 });
 assert(strc.primaryUrl.includes("view=pt"), "STRCx opens PT view");
+const extraUrls = {
+  "labs-pt-usd3": [
+    "https://app.morpho.org/ethereum/variable/0xf8c5aa31ea6b2a068a9eddb46dd110cae57bf0f12be9583a3f9a818effecba89/pt-usd3-17dec2026-usdc#market",
+    "https://fluid.io/1/lite/usdc?mode=deposit",
+    "https://t.me/c/2520601362/233/740",
+  ],
+  "labs-pt-strcx": ["https://t.me/c/2520601362/292/802"],
+  "labs-fxb-20261231": [
+    "https://www.geckoterminal.com/eth/pools/0xe035e27a8ed6842b478933820f90093d205f7098",
+    "https://app.frax.finance/fxb/bonds",
+    "https://t.me/c/2520601362/304/806",
+    "https://t.me/c/2520601362/304/808",
+  ],
+};
+LABS_STABLE_STRATEGIES.forEach((s) => {
+  const urls = s.extraLinks.map((item) => item.url);
+  const row = merged.find((t) => t.strategyId === s.id);
+  assert(urls.join("\n") === extraUrls[s.id].join("\n"), `${s.id} extra links`);
+  assert(
+    row.extraLinks.map((item) => item.url).join("\n") === extraUrls[s.id].join("\n"),
+    `${s.id} live extra links`,
+  );
+  urls.forEach((url) => {
+    assert(!url.endsWith("."), `${s.id} extra URL has no trailing period: ${url}`);
+    assert(url !== s.primaryUrl, `${s.id} extra URL is not the main CTA`);
+  });
+});
 assert(fxb.primaryUrl.includes("/1/limit/"), "FXB opens Cowswap limit");
 assert(
   Array.isArray(stored.extraLinks) && stored.extraLinks.length >= 3,

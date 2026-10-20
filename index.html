@@ -3490,7 +3490,9 @@
           liveEntryAprPct: strategy.liveEntryAprPct == null ? null : String(strategy.liveEntryAprPct),
           apy: strategy.savedAprPct,
           chain: strategy.chain,
+          chainId: strategy.chainId || 1,
           link: strategy.primaryUrl,
+          primaryUrl: strategy.primaryUrl,
           extraLinks: strategy.extraLinks,
           desc: strategy.descRu,
           descEn: strategy.descEn,
@@ -3504,7 +3506,7 @@
           marketAddress: strategy.marketAddress,
           tokenAddress: strategy.tokenAddress,
           skipTvl: true,
-          status: "active",
+          status: strategy.status,
         });
       }
 

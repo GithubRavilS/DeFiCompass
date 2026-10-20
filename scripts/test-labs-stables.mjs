@@ -88,17 +88,39 @@ const requiredKeys = [
   "publishedAt",
   "sourceUrl",
   "primaryUrl",
+  "extraLinks",
   "maturityAt",
   "status",
 ];
+const allowedStatus = new Set(["active", "matured", "disabled"]);
 LABS_STABLE_STRATEGIES.forEach((s) => {
   requiredKeys.forEach((k) => {
     assert(Object.prototype.hasOwnProperty.call(s, k), `${s.id} missing ${k}`);
   });
   assert(s.rateKind === "review-saved", `${s.id} rateKind`);
+  assert(allowedStatus.has(s.status), `${s.id} status`);
+  assert(typeof s.publishedAt === "string", `${s.id} publishedAt stored, not invented`);
   assert(s.liveEntryAprPct == null, `${s.id} live entry stays a separate empty field`);
   assert(Array.isArray(s.extraLinks), `${s.id} extraLinks`);
+  assert(/\.\d{3}Z$/.test(s.maturityAt) || /T.*Z$/.test(s.maturityAt), `${s.id} maturityAt UTC`);
 });
+
+const stored = merged.find((t) => t.strategyId === "labs-pt-usd3");
+assert(stored.strategyId === "labs-pt-usd3", "stable id on live row");
+assert(stored.protocol === "Pendle", "protocol on live row");
+assert(stored.chain === "Ethereum", "chain on live row");
+assert(stored.marketAddress === "0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e", "market on live row");
+assert(stored.tokenAddress === "0x7f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d", "token on live row");
+assert(stored.savedAprPct === "14.0", "saved annual rate on live row");
+assert(stored.rateKind === "review-saved", "rate kind is original review");
+assert(stored.sourceUrl === usd3.sourceUrl, "publication URL on live row");
+assert(stored.primaryUrl === usd3.primaryUrl, "primary open URL on live row");
+assert(
+  Array.isArray(stored.extraLinks) && stored.extraLinks.length >= 3,
+  "extra links on live row",
+);
+assert(stored.maturityAt === "2026-12-17T00:00:00.000Z", "maturityAt UTC on live row");
+assert(stored.status === "active", "lifecycle status on live row");
 
 const sheetOverwrite = applyLabsStableCatalog(
   [

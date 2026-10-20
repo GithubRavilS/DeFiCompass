@@ -5317,6 +5317,12 @@
         return dd + "." + mm + "." + yyyy;
       }
 
+      function toolOpenUrl(tool) {
+        if (tool && tool.primaryUrl) return String(tool.primaryUrl);
+        if (tool && tool.link) return String(tool.link);
+        return "#";
+      }
+
       function getToolExtraLinks(tool) {
         var links = (tool && tool.extraLinks ? tool.extraLinks.slice() : []) || [];
         if (tool && tool.sourceUrl) {
@@ -5822,7 +5828,7 @@
               escapeHtml(formatPeriodDisplay(tool)) +
               "</span></div>" +
               '<a href="' +
-              escapeHtml(tool.link) +
+              escapeHtml(toolOpenUrl(tool)) +
               '" target="_blank" rel="noopener noreferrer" class="pool-battle-alt-link">' +
               escapeHtml(t("visitPosition")) +
               "</a>" +
@@ -5919,6 +5925,7 @@
           rateKind: tool.rateKind || "",
           publishedAt: tool.publishedAt || "",
           sourceUrl: tool.sourceUrl || "",
+          primaryUrl: tool.primaryUrl || tool.link || "",
         };
       }
 
@@ -6055,7 +6062,7 @@
               "%</div>" +
               '<div class="fav-mini-actions">' +
               '<a href="' +
-              escapeHtml(item.link) +
+              escapeHtml(toolOpenUrl(item)) +
               '" target="_blank" rel="noopener noreferrer">' +
               escapeHtml(t("visitPosition")) +
               "</a>" +
@@ -7060,7 +7067,7 @@
               "</div>" +
               '<div class="tool-footer">' +
               '<a href="' +
-              escapeHtml(tool.link) +
+              escapeHtml(toolOpenUrl(tool)) +
               '" target="_blank" rel="noopener noreferrer" class="tool-link">' +
               t("visitPosition") +
               "</a>" +
@@ -7129,7 +7136,7 @@
               renderTvlBadgePlaceholder(tool) +
               "</td>" +
               '<td><a href="' +
-              escapeHtml(tool.link) +
+              escapeHtml(toolOpenUrl(tool)) +
               '" target="_blank" rel="noopener noreferrer" class="tool-link">' +
               t("visitPosition") +
               "</a></td>" +

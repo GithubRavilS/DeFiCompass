@@ -37,6 +37,15 @@ assert(!isLabsStrategyLive(strc, afterStrc), "STRCx hidden at expiry");
 
 const usd3 = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-pt-usd3");
 assert(usd3.maturityAt === "2026-12-17T00:00:00.000Z", "USD3 uses 17DEC contract expiry");
+const primaryUrls = {
+  "labs-pt-usd3":
+    "https://app.pendle.finance/trade/markets/0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e/swap?chain=ethereum&view=pt&chart=price",
+  "labs-pt-strcx":
+    "https://app.pendle.finance/trade/markets/0x8ce3a13852d13e0e991c677a8c6137584e2b7635/swap?chain=ethereum&view=pt&chart=price",
+  "labs-fxb-20261231":
+    "https://swap.cow.fi/#/1/limit/0x853d955acef822db058eb8505911ed77f175b99e/0x76237bcfdbe8e06fb774663add96216961df4ff3",
+};
+assert(usd3.primaryUrl === primaryUrls["labs-pt-usd3"], "USD3 primary open URL");
 assert(usd3.primaryUrl.includes("view=pt"), "USD3 opens PT view");
 
 const fxb = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-fxb-20261231");
@@ -218,6 +227,20 @@ assert(
 );
 assert(stored.sourceUrl === usd3.sourceUrl, "publication URL on live row");
 assert(stored.primaryUrl === usd3.primaryUrl, "primary open URL on live row");
+LABS_STABLE_STRATEGIES.forEach((s) => {
+  const row = merged.find((t) => t.strategyId === s.id);
+  assert(s.primaryUrl === primaryUrls[s.id], `${s.id} catalog primary URL`);
+  assert(row.primaryUrl === s.primaryUrl, `${s.id} live primaryUrl`);
+  assert(row.link === s.primaryUrl, `${s.id} card CTA uses primary URL`);
+  assert(s.primaryUrl !== s.sourceUrl, `${s.id} open URL is not the publication`);
+  assert(!s.primaryUrl.endsWith("."), `${s.id} primary URL has no trailing period`);
+  assert(
+    !s.extraLinks.some((item) => item.url === s.primaryUrl),
+    `${s.id} extra links stay off the main open URL`,
+  );
+});
+assert(strc.primaryUrl.includes("view=pt"), "STRCx opens PT view");
+assert(fxb.primaryUrl.includes("/1/limit/"), "FXB opens Cowswap limit");
 assert(
   Array.isArray(stored.extraLinks) && stored.extraLinks.length >= 3,
   "extra links on live row",

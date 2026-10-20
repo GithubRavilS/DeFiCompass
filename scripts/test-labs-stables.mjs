@@ -123,6 +123,33 @@ LABS_STABLE_STRATEGIES.forEach((s) => {
 });
 
 assert(strc.publishedAt === "2026-10-05", "STRCx stores the 5 Oct workshop date");
+const publicationUrls = {
+  "labs-pt-usd3": "https://t.me/c/2520601362/233/740",
+  "labs-pt-strcx": "https://t.me/c/2520601362/292/802",
+  "labs-fxb-20261231": "https://t.me/c/2520601362/304/806",
+};
+LABS_STABLE_STRATEGIES.forEach((s) => {
+  assert(s.sourceUrl === publicationUrls[s.id], `${s.id} publication URL`);
+  assert(!s.sourceUrl.endsWith("."), `${s.id} publication URL has no trailing period`);
+  assert(
+    s.extraLinks.some((item) => item.url === s.sourceUrl),
+    `${s.id} extra links include the publication`,
+  );
+});
+assert(
+  merged.find((t) => t.strategyId === "labs-pt-usd3").sourceUrl === publicationUrls["labs-pt-usd3"],
+  "live USD3 row stores the publication URL",
+);
+assert(
+  merged.find((t) => t.strategyId === "labs-pt-strcx").sourceUrl ===
+    publicationUrls["labs-pt-strcx"],
+  "live STRCx row stores the publication URL",
+);
+assert(
+  merged.find((t) => t.strategyId === "labs-fxb-20261231").sourceUrl ===
+    publicationUrls["labs-fxb-20261231"],
+  "live FXB row stores the publication URL, not the 808 entry guide",
+);
 assert(usd3.publishedAt === "", "USD3 has no publication date in the source");
 assert(fxb.publishedAt === "", "FXB has no publication date in the source");
 assert(

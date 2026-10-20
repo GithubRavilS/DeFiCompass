@@ -2934,6 +2934,7 @@
           savedRatePtOnly: "только базовая PT, не Morpho+Fluid",
           savedRatePtStrc: "PT 22,1% · воркшоп 5 октября, не дивиденд STRC 12%",
           maturityUntil: "до",
+          ptIssueUntil: "PT-выпуск до",
           extraLinksLabel: "Дополнительно",
         },
         en: {
@@ -3038,6 +3039,7 @@
           savedRatePtOnly: "base PT only, not Morpho+Fluid",
           savedRatePtStrc: "PT 22.1% · 5 Oct workshop, not the 12% STRC dividend",
           maturityUntil: "until",
+          ptIssueUntil: "PT issue until",
           extraLinksLabel: "More links",
         },
       };
@@ -3364,10 +3366,11 @@
           primaryUrl:
             "https://app.pendle.finance/trade/markets/0x8ce3a13852d13e0e991c677a8c6137584e2b7635/swap?chain=ethereum&view=pt&chart=price",
           maturityAt: "2026-11-26T00:00:00.000Z",
+          maturityKind: "pt-issue",
           descRu:
-            "PT на базе токенизированного STRC. Ставка сохранена на момент разбора; долларовый результат зависит также от стоимости расчётного актива. Не подменять эту позицию обычными акциями STRC, YT или LP на Pendle. Не использовать дивидендную ставку STRC 12% вместо ставки PT.",
+            "PT на базе токенизированного STRC. Ставка сохранена на момент разбора; долларовый результат зависит также от стоимости расчётного актива. Не подменять эту позицию обычными акциями STRC, YT или LP на Pendle. Не использовать дивидендную ставку STRC 12% вместо ставки PT. Дата 26 ноября относится к PT-выпуску. Самим бессрочным привилегированным акциям STRC не присваивать дату погашения.",
           descEn:
-            "PT on tokenized STRC. The rate is saved from the review; dollar outcome also depends on the settlement asset price. This is not ordinary STRC stock, Pendle YT, or LP. Do not use the 12% STRC dividend in place of the PT rate.",
+            "PT on tokenized STRC. The rate is saved from the review; dollar outcome also depends on the settlement asset price. This is not ordinary STRC stock, Pendle YT, or LP. Do not use the 12% STRC dividend in place of the PT rate. 26 November is the PT issue expiry. Perpetual preferred STRC has no maturity date.",
           extraLinks: [
             {
               labelRu: "Исходный разбор",
@@ -3486,6 +3489,7 @@
           publishedAt: strategy.publishedAt || "",
           sourceUrl: strategy.sourceUrl,
           maturityAt: strategy.maturityAt,
+          maturityKind: strategy.maturityKind || "",
           strategyStatus: strategy.status,
           marketAddress: strategy.marketAddress,
           tokenAddress: strategy.tokenAddress,
@@ -6101,7 +6105,13 @@
       function formatPeriodDisplay(tool) {
         if (tool && tool.maturityAt) {
           var md = formatMaturityDateLabel(tool.maturityAt);
-          if (md) return t("maturityUntil") + " " + md;
+          if (md) {
+            var prefix =
+              tool.maturityKind === "pt-issue" || tool.rateScope === "pt-strcx"
+                ? t("ptIssueUntil")
+                : t("maturityUntil");
+            return prefix + " " + md;
+          }
         }
         var p = tool.period != null ? String(tool.period).trim() : "";
         if (!p || isAbsurdPeriodValue(p)) {

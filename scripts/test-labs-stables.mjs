@@ -120,10 +120,40 @@ assert(
   shifted.find((t) => t.strategyId === "labs-pt-usd3").id === "labs-pt-usd3",
   "sheet refresh must not mint a new numeric id",
 );
-assert(stored.protocol === "Pendle", "protocol on live row");
-assert(stored.chain === "Ethereum", "chain on live row");
-assert(stored.marketAddress === "0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e", "market on live row");
-assert(stored.tokenAddress === "0x7f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d", "token on live row");
+const identity = {
+  "labs-pt-usd3": {
+    protocol: "Pendle",
+    chain: "Ethereum",
+    marketAddress: "0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e",
+    tokenAddress: "0x7f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d",
+  },
+  "labs-pt-strcx": {
+    protocol: "Pendle",
+    chain: "Ethereum",
+    marketAddress: "0x8ce3a13852d13e0e991c677a8c6137584e2b7635",
+    tokenAddress: "0x599ef448e1d3378ed2dd7982d4b00615d9e5bf77",
+  },
+  "labs-fxb-20261231": {
+    protocol: "Frax Finance",
+    chain: "Ethereum",
+    marketAddress: "0x76237bcfdbe8e06fb774663add96216961df4ff3",
+    tokenAddress: "0x76237bcfdbe8e06fb774663add96216961df4ff3",
+  },
+};
+Object.keys(identity).forEach((id) => {
+  const row = merged.find((t) => t.strategyId === id);
+  const exp = identity[id];
+  assert(row.protocol === exp.protocol, `${id} protocol`);
+  assert(row.chain === exp.chain, `${id} chain`);
+  assert(row.chainId === 1, `${id} chainId`);
+  assert(row.marketAddress === exp.marketAddress, `${id} market address`);
+  assert(row.tokenAddress === exp.tokenAddress, `${id} token address`);
+});
+assert(
+  merged.find((t) => t.strategyId === "labs-fxb-20261231").settlementAsset ===
+    "0x853d955acef822db058eb8505911ed77f175b99e",
+  "FXB stores Legacy FRAX separately from the FXB token",
+);
 assert(stored.savedAprPct === "14.0", "saved annual rate on live row");
 assert(stored.rateKind === "review-saved", "rate kind is original review");
 assert(stored.sourceUrl === usd3.sourceUrl, "publication URL on live row");

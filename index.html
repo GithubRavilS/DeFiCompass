@@ -2931,6 +2931,7 @@
           filterReset: "Сбросить фильтры",
           filterBarAria: "Фильтры по платформе, блокчейну, комиссии и диапазону",
           savedRateLabel: "Сохранённая ставка исходного разбора",
+          publishedAtLabel: "публикация",
           savedRateLiveEntry: "Текущий вход",
           savedRatePtOnly: "только базовая PT, не Morpho+Fluid",
           savedRatePtStrc: "PT 22,1% · воркшоп 5 октября, не дивиденд STRC 12%",
@@ -3038,6 +3039,7 @@
           filterReset: "Reset filters",
           filterBarAria: "Filters by platform, blockchain, fee tier, and price range",
           savedRateLabel: "Saved rate from the original review",
+          publishedAtLabel: "published",
           savedRateLiveEntry: "Live entry",
           savedRatePtOnly: "base PT only, not Morpho+Fluid",
           savedRatePtStrc: "PT 22.1% · 5 Oct workshop, not the 12% STRC dividend",
@@ -5287,6 +5289,8 @@
         if (tool.rateScope === "pt-only") note += " · " + t("savedRatePtOnly");
         if (tool.rateScope === "pt-strcx") note += " · " + t("savedRatePtStrc");
         if (tool.rateScope === "saved-fxb") note += " · " + t("savedRateFxb");
+        var published = formatPublishedDateLabel(tool.publishedAt);
+        if (published) note += " · " + t("publishedAtLabel") + " " + published;
         var html = '<span class="tool-apy-note">' + escapeHtml(note) + "</span>";
         if (tool.liveEntryAprPct) {
           html +=
@@ -5295,6 +5299,12 @@
             "</span>";
         }
         return html;
+      }
+
+      function formatPublishedDateLabel(value) {
+        var m = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) return "";
+        return m[3] + "." + m[2] + "." + m[1];
       }
 
       function formatMaturityDateLabel(maturityAt) {
@@ -5907,6 +5917,7 @@
           maturityAt: tool.maturityAt || "",
           strategyId: tool.strategyId || "",
           rateKind: tool.rateKind || "",
+          publishedAt: tool.publishedAt || "",
         };
       }
 

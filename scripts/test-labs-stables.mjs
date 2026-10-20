@@ -122,6 +122,18 @@ LABS_STABLE_STRATEGIES.forEach((s) => {
   assert(/\.\d{3}Z$/.test(s.maturityAt) || /T.*Z$/.test(s.maturityAt), `${s.id} maturityAt UTC`);
 });
 
+assert(strc.publishedAt === "2026-10-05", "STRCx stores the 5 Oct workshop date");
+assert(usd3.publishedAt === "", "USD3 has no publication date in the source");
+assert(fxb.publishedAt === "", "FXB has no publication date in the source");
+assert(
+  merged.find((t) => t.strategyId === "labs-pt-strcx").publishedAt === "2026-10-05",
+  "live STRCx row carries publishedAt",
+);
+assert(
+  merged.find((t) => t.strategyId === "labs-pt-usd3").publishedAt === "",
+  "live USD3 row does not invent publishedAt",
+);
+
 const stored = merged.find((t) => t.strategyId === "labs-pt-usd3");
 assert(usd3.id === "labs-pt-usd3", "catalog id is stable");
 assert(stored.id === "labs-pt-usd3", "live row id is the catalog id");

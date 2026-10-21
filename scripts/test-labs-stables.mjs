@@ -51,6 +51,26 @@ assert(usd3.primaryUrl.includes("view=pt"), "USD3 opens PT view");
 const fxb = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-fxb-20261231");
 assert(fxb.maturityAt === "2027-01-01T00:00:00.000Z", "FXB uses contract MATURITY_TIMESTAMP");
 assert(
+  strc.maturityAt === "2026-11-26T00:00:00.000Z",
+  "STRCx uses contract PT expiry, not the 25 Nov UI label",
+);
+assert(
+  Date.parse(usd3.maturityAt) === Date.UTC(2026, 11, 17),
+  "USD3 maturityAt is 17 Dec 2026 00:00 UTC",
+);
+assert(
+  Date.parse(strc.maturityAt) === Date.UTC(2026, 10, 26),
+  "STRCx maturityAt is 26 Nov 2026 00:00 UTC",
+);
+assert(
+  Date.parse(fxb.maturityAt) === Date.UTC(2027, 0, 1),
+  "FXB maturityAt is 1 Jan 2027 00:00 UTC",
+);
+LABS_STABLE_STRATEGIES.forEach((s) => {
+  assert(s.maturityAt.endsWith("Z"), `${s.id} maturityAt is UTC`);
+  assert(!s.maturityAt.includes("+"), `${s.id} maturityAt has no local offset`);
+});
+assert(
   fxb.primaryUrl.includes("0x853d955acef822db058eb8505911ed77f175b99e"),
   "Cowswap sells Legacy FRAX",
 );
@@ -273,6 +293,15 @@ assert(
   "extra links on live row",
 );
 assert(stored.maturityAt === "2026-12-17T00:00:00.000Z", "maturityAt UTC on live row");
+assert(
+  merged.find((t) => t.strategyId === "labs-pt-strcx").maturityAt === "2026-11-26T00:00:00.000Z",
+  "live STRCx maturityAt UTC",
+);
+assert(
+  merged.find((t) => t.strategyId === "labs-fxb-20261231").maturityAt ===
+    "2027-01-01T00:00:00.000Z",
+  "live FXB maturityAt UTC",
+);
 assert(stored.status === "active", "lifecycle status on live row");
 
 const sheetOverwrite = applyLabsStableCatalog(

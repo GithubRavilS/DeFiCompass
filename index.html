@@ -794,6 +794,104 @@
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      .tool-apy-value {
+        line-height: 1.1;
+      }
+
+      .tool-info-btn {
+        width: 22px;
+        height: 22px;
+        margin-top: 2px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 700;
+        font-style: italic;
+        font-family: Georgia, "Times New Roman", serif;
+        line-height: 20px;
+        padding: 0;
+        cursor: pointer;
+        -webkit-text-fill-color: var(--text-secondary);
+        background-image: none;
+        flex-shrink: 0;
+      }
+
+      .tool-info-btn:hover,
+      .tool-info-btn[aria-expanded="true"] {
+        border-color: var(--accent);
+        color: #fff;
+        -webkit-text-fill-color: #fff;
+        background: rgba(47, 128, 237, 0.22);
+      }
+
+      .pool-battle-instrument-name .tool-info-btn {
+        margin-top: 0;
+      }
+
+      .tool-info-flyout {
+        position: fixed;
+        z-index: 1300;
+        width: min(340px, calc(100vw - 32px));
+        padding: 14px 14px 12px;
+        border-radius: 14px;
+        background: rgba(18, 24, 42, 0.96);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(16px);
+        color: var(--text);
+      }
+
+      .tool-info-flyout[hidden] {
+        display: none !important;
+      }
+
+      .tool-info-flyout-kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+      }
+
+      .tool-info-flyout-note {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent-bright);
+        line-height: 1.4;
+        margin-bottom: 8px;
+      }
+
+      .tool-info-flyout-desc {
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+      }
+
+      .tool-info-flyout-links {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .tool-info-flyout-links a {
+        color: var(--accent-bright);
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .tool-info-flyout-links a:hover {
+        text-decoration: underline;
       }
 
       .tool-meta {
@@ -1117,6 +1215,9 @@
         font-size: 16px;
         font-weight: 700;
         line-height: 1.25;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
       .pool-battle-table-name .pool-battle-instrument-head {
@@ -1534,6 +1635,9 @@
         line-height: 1.3;
         flex: 1;
         min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
       .fav-mini-remove {
@@ -2737,6 +2841,8 @@
       <span class="favorites-fab-count" id="favoritesFabCount">0</span>
     </button>
 
+    <div class="tool-info-flyout" id="toolInfoFlyout" hidden role="dialog"></div>
+
     <div class="favorites-panel" id="favoritesPanel" aria-hidden="true" role="dialog">
       <div class="favorites-panel-inner">
         <div class="favorites-panel-head">
@@ -2939,6 +3045,8 @@
           maturityUntil: "до",
           ptIssueUntil: "PT-выпуск до",
           extraLinksLabel: "Дополнительно",
+          infoAria: "Информация о позиции",
+          infoTitle: "О позиции",
         },
         en: {
           logo: "DeFi Labs",
@@ -3047,6 +3155,8 @@
           maturityUntil: "until",
           ptIssueUntil: "PT issue until",
           extraLinksLabel: "More links",
+          infoAria: "Position details",
+          infoTitle: "About this position",
         },
       };
 
@@ -5329,14 +5439,105 @@
         if (tool.rateScope === "saved-fxb") note += " · " + t("savedRateFxb");
         var published = formatPublishedDateLabel(tool.publishedAt);
         if (published) note += " · " + t("publishedAtLabel") + " " + published;
-        var html = '<span class="tool-apy-note">' + escapeHtml(note) + "</span>";
         if (tool.liveEntryAprPct) {
-          html +=
-            '<span class="tool-apy-note">' +
-            escapeHtml(t("savedRateLiveEntry") + " " + formatOneDecimal(tool.liveEntryAprPct) + "%") +
-            "</span>";
+          note += " · " + t("savedRateLiveEntry") + " " + formatOneDecimal(tool.liveEntryAprPct) + "%";
         }
-        return html;
+        return note;
+      }
+
+      function toolNeedsInfoPanel(tool) {
+        if (!tool) return false;
+        if (isSavedReviewRate(tool)) return true;
+        return getToolExtraLinks(tool).length > 0;
+      }
+
+      function renderToolInfoTrigger(tool) {
+        if (!toolNeedsInfoPanel(tool)) return "";
+        return (
+          '<button type="button" class="tool-info-btn" data-tool-key="' +
+          escapeHtml(toolKey(tool)) +
+          '" aria-label="' +
+          escapeHtml(t("infoAria")) +
+          '" title="' +
+          escapeHtml(t("infoAria")) +
+          '" aria-expanded="false">i</button>'
+        );
+      }
+
+      function closeToolInfoFlyout() {
+        var fly = document.getElementById("toolInfoFlyout");
+        if (fly) {
+          fly.hidden = true;
+          fly.innerHTML = "";
+        }
+        document.querySelectorAll(".tool-info-btn[aria-expanded='true']").forEach(function (btn) {
+          btn.setAttribute("aria-expanded", "false");
+        });
+      }
+
+      function findToolByKey(key) {
+        if (!key) return null;
+        var lists = [typeof allTools !== "undefined" ? allTools : [], getVisibleTools()];
+        var i;
+        var j;
+        for (i = 0; i < lists.length; i++) {
+          for (j = 0; j < lists[i].length; j++) {
+            if (toolKey(lists[i][j]) === key) return lists[i][j];
+          }
+        }
+        return getFavoritesList().find(function (item) {
+          return item.key === key;
+        }) || null;
+      }
+
+      function openToolInfoFlyout(btn) {
+        var tool = findToolByKey(btn.getAttribute("data-tool-key"));
+        var fly = document.getElementById("toolInfoFlyout");
+        if (!tool || !fly) return;
+        var note = formatSavedRateNote(tool);
+        var desc = String(toolDesc(tool) || "").trim();
+        var links = getToolExtraLinks(tool);
+        var html = '<div class="tool-info-flyout-kicker">' + escapeHtml(t("infoTitle")) + "</div>";
+        if (note) html += '<div class="tool-info-flyout-note">' + escapeHtml(note) + "</div>";
+        if (desc) html += '<div class="tool-info-flyout-desc">' + escapeHtml(desc) + "</div>";
+        if (links.length) {
+          html +=
+            '<div class="tool-info-flyout-links">' +
+            links
+              .map(function (item) {
+                var label =
+                  currentLang === "en" ? item.labelEn || item.labelRu : item.labelRu || item.labelEn;
+                if (!item.url || !label) return "";
+                return (
+                  '<a href="' +
+                  escapeHtml(item.url) +
+                  '" target="_blank" rel="noopener noreferrer">' +
+                  escapeHtml(label) +
+                  "</a>"
+                );
+              })
+              .filter(Boolean)
+              .join("") +
+            "</div>";
+        }
+        fly.innerHTML = html;
+        fly.hidden = false;
+        document.querySelectorAll(".tool-info-btn[aria-expanded='true']").forEach(function (openBtn) {
+          openBtn.setAttribute("aria-expanded", "false");
+        });
+        btn.setAttribute("aria-expanded", "true");
+        var rect = btn.getBoundingClientRect();
+        var width = Math.min(340, window.innerWidth - 32);
+        var left = Math.min(Math.max(16, rect.right - width), window.innerWidth - width - 16);
+        var top = rect.bottom + 8;
+        fly.style.width = width + "px";
+        fly.style.left = left + "px";
+        fly.style.top = top + "px";
+        var flyRect = fly.getBoundingClientRect();
+        if (flyRect.bottom > window.innerHeight - 12) {
+          top = Math.max(12, rect.top - flyRect.height - 8);
+          fly.style.top = top + "px";
+        }
       }
 
       function formatPublishedDateLabel(value) {
@@ -5621,7 +5822,10 @@
         return (
           '<div class="pool-battle-instrument-head">' +
           '<div class="pool-battle-instrument-name">' +
+          "<span>" +
           escapeHtml(formatInstrumentName(tool)) +
+          "</span>" +
+          renderToolInfoTrigger(tool) +
           "</div>" +
           '<div class="pool-battle-meta-row">' +
           renderPoolBattleChainChip(tool) +
@@ -5639,6 +5843,7 @@
       }
 
       function shouldShowToolCardDesc(tool, categoryId) {
+        if (isSavedReviewRate(tool)) return false;
         if (!categoryUsesPoolBattleGrouping(categoryId)) return true;
         if (formatChainLabel(tool) || formatFeeLabelFromTool(tool))
           return !isPoolMetaDescription(tool);
@@ -5967,6 +6172,7 @@
           sourceUrl: tool.sourceUrl || "",
           primaryUrl: tool.primaryUrl || tool.link || "",
           extraLinks: Array.isArray(tool.extraLinks) ? tool.extraLinks.slice() : [],
+          rateScope: tool.rateScope || "",
         };
       }
 
@@ -6090,6 +6296,7 @@
               '<div class="fav-mini-head">' +
               '<div class="fav-mini-title">' +
               escapeHtml(item.name) +
+              renderToolInfoTrigger(item) +
               "</div>" +
               '<button type="button" class="fav-mini-remove" data-fav-key="' +
               escapeHtml(item.key) +
@@ -6100,8 +6307,7 @@
               '">×</button>' +
               "</div>" +
               pairLine +
-              descBlock +
-              renderToolExtraLinks(item) +
+              (isSavedReviewRate(item) ? "" : descBlock) +
               '<div class="fav-mini-meta">' +
               escapeHtml(categoryName(item.categoryId)) +
               " · APY " +
@@ -6159,6 +6365,10 @@
         var pv = (tool.pair || "").trim();
         var L1 = ((tool.name || "").trim() + (pv ? " " + pv : "")).trim() || "—";
         if (L1.length > 56) L1 = L1.slice(0, 53) + "…";
+        if (isSavedReviewRate(tool)) {
+          var chain = formatChainLabel(tool) || "";
+          return chain ? L1 + "\n" + chain : L1;
+        }
 
         var d =
           typeof toolDesc === "function"
@@ -6836,8 +7046,29 @@
             if (e.target === panel) closeFavoritesPanel();
           });
         }
+        document.addEventListener("click", function (e) {
+          var infoBtn = e.target.closest(".tool-info-btn");
+          if (infoBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (infoBtn.getAttribute("aria-expanded") === "true") closeToolInfoFlyout();
+            else openToolInfoFlyout(infoBtn);
+            return;
+          }
+          if (!e.target.closest("#toolInfoFlyout")) closeToolInfoFlyout();
+        });
+        window.addEventListener(
+          "scroll",
+          function () {
+            closeToolInfoFlyout();
+          },
+          true
+        );
         document.addEventListener("keydown", function (e) {
-          if (e.key === "Escape") closeFavoritesPanel();
+          if (e.key === "Escape") {
+            closeToolInfoFlyout();
+            closeFavoritesPanel();
+          }
         });
         var chartResizeTimer;
         window.addEventListener("resize", function () {
@@ -7036,6 +7267,7 @@
         return currentLang === "ru" ? tool.desc : tool.descEn || tool.desc;
       }
       function renderTools(groups, categoryId) {
+        closeToolInfoFlyout();
         const container = document.getElementById("toolsGrid");
         if (!groups.length) {
           container.innerHTML =
@@ -7093,10 +7325,9 @@
               renderPoolBattleInstrumentHead(tool) +
               pairBlock +
               "</div>" +
-              '<div class="tool-apy">' +
+              '<div class="tool-apy"><span class="tool-apy-value">' +
               formatApyDisplay(tool) +
-              formatSavedRateNote(tool) +
-              "</div>" +
+              "</span></div>" +
               "</div>" +
               chevron +
               "</div>" +
@@ -7104,7 +7335,6 @@
               (shouldShowToolCardDesc(tool, categoryId)
                 ? '<div class="tool-desc">' + escapeHtml(toolDesc(tool)) + "</div>"
                 : "") +
-              renderToolExtraLinks(tool) +
               '<div class="tool-meta"><span class="tool-period-pill"><span class="tool-period-glyph" aria-hidden="true">⏱</span><span class="tool-period-lbl">' +
               escapeHtml(t("period")) +
               '</span><span class="tool-period-val">' +
@@ -7134,6 +7364,7 @@
       }
 
       function renderToolsTable(groups, categoryId) {
+        closeToolInfoFlyout();
         const tbody = document.getElementById("toolsTableBody");
         if (!groups.length) {
           tbody.innerHTML =
@@ -7168,14 +7399,12 @@
               '<div class="pool-battle-table-name">' +
               renderPoolBattleInstrumentHead(tool) +
               rangeHtml +
-              renderToolExtraLinks(tool) +
               "</div></div></td>" +
               "<td>" +
               escapeHtml(tool.pair || "—") +
               "</td>" +
               '<td class="apy-cell">' +
               escapeHtml(formatApyDisplay(tool)) +
-              formatSavedRateNote(tool) +
               "</td>" +
               '<td class="period-cell"><span class="table-period-chip">' +
               escapeHtml(formatPeriodDisplay(tool)) +

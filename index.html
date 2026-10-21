@@ -5285,8 +5285,12 @@
         return tool && tool.apy != null ? String(tool.apy) : "";
       }
 
+      function toolApyNumber(tool) {
+        return parseApyNumber(savedAnnualRate(tool));
+      }
+
       function formatApyDisplay(tool) {
-        var n = parseApyNumber(isSavedReviewRate(tool) ? savedAnnualRate(tool) : tool.apy);
+        var n = toolApyNumber(tool);
         if (!Number.isFinite(n)) return t("noValue");
         return formatOneDecimal(n) + "%";
       }
@@ -5642,7 +5646,7 @@
 
       /** Главная строка группы — макс. APY; при равенстве — уже диапазон. */
       function compareByHighestApyThenRange(a, b) {
-        var apyDiff = parseApyNumber(savedAnnualRate(b)) - parseApyNumber(savedAnnualRate(a));
+        var apyDiff = toolApyNumber(b) - toolApyNumber(a);
         if (apyDiff !== 0) return apyDiff;
         var wa = priceRangeWidth(a);
         var wb = priceRangeWidth(b);
@@ -5926,7 +5930,8 @@
           categoryId: tool.categoryId,
           name: tool.name || "",
           pair: tool.pair || "",
-          apy: tool.apy,
+          apy: savedAnnualRate(tool),
+          savedAprPct: tool.savedAprPct || savedAnnualRate(tool),
           link: tool.link || "#",
           period: tool.period || "",
           status: tool.status || "active",
@@ -6072,8 +6077,8 @@
               '<div class="fav-mini-meta">' +
               escapeHtml(categoryName(item.categoryId)) +
               " · APY " +
-              formatOneDecimal(item.apy) +
-              "%</div>" +
+              formatApyDisplay(item) +
+              "</div>" +
               '<div class="fav-mini-actions">' +
               '<a href="' +
               escapeHtml(toolOpenUrl(item)) +
@@ -7198,10 +7203,10 @@
               {
                 label: "",
                 data: chartSorted.map(function (t) {
-                  return parseFloat(t.apy);
+                  return toolApyNumber(t);
                 }),
                 backgroundColor: chartSorted.map(function (t) {
-                  var cls = heatmapApyColorClass(parseFloat(t.apy));
+                  var cls = heatmapApyColorClass(toolApyNumber(t));
                   if (cls === "heatmap-low") return "rgba(39, 174, 96, 0.68)";
                   if (cls === "heatmap-medium") return "rgba(242, 201, 76, 0.68)";
                   if (cls === "heatmap-high") return "rgba(47, 128, 237, 0.68)";
@@ -7315,7 +7320,7 @@
         const copy = [...tools];
         if (currentSort === "apy-desc") {
           return copy.sort(function (a, b) {
-            return parseApyNumber(savedAnnualRate(b)) - parseApyNumber(savedAnnualRate(a));
+            return toolApyNumber(b) - toolApyNumber(a);
           });
         } else if (currentSort === "name") {
           return copy.sort((a, b) => a.name.localeCompare(b.name));

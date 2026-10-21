@@ -6,6 +6,7 @@ const {
   isDisabledCurveMonadPool,
   isLabsStrategyLive,
   applyLabsStableCatalog,
+  labsStrategyStatus,
 } = require("../lib/labs-stable-strategies.js");
 
 function assert(cond, msg) {
@@ -34,6 +35,16 @@ const afterStrc = Date.parse("2026-11-26T00:00:00.000Z");
 const strc = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-pt-strcx");
 assert(isLabsStrategyLive(strc, beforeMat), "STRCx live before expiry");
 assert(!isLabsStrategyLive(strc, afterStrc), "STRCx hidden at expiry");
+assert(labsStrategyStatus(strc, beforeMat) === "active", "STRCx active before expiry");
+assert(labsStrategyStatus(strc, afterStrc) === "matured", "STRCx matured at expiry");
+assert(
+  labsStrategyStatus({ ...strc, status: "disabled" }, beforeMat) === "disabled",
+  "disabled stays disabled",
+);
+assert(
+  labsStrategyStatus({ ...strc, status: "matured" }, beforeMat) === "matured",
+  "catalog matured stays matured",
+);
 
 const usd3 = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-pt-usd3");
 assert(usd3.maturityAt === "2026-12-17T00:00:00.000Z", "USD3 uses 17DEC contract expiry");
@@ -303,6 +314,17 @@ assert(
   "live FXB maturityAt UTC",
 );
 assert(stored.status === "active", "lifecycle status on live row");
+assert(stored.strategyStatus === "active", "strategyStatus on live row");
+merged
+  .filter((t) => t.strategyId)
+  .forEach((t) => {
+    assert(t.status === "active" && t.strategyStatus === "active", `${t.strategyId} live status`);
+  });
+const maturedNow = applyLabsStableCatalog([], afterStrc);
+assert(
+  !maturedNow.some((t) => t.strategyId === "labs-pt-strcx"),
+  "matured STRCx is not injected into the live list",
+);
 
 const sheetOverwrite = applyLabsStableCatalog(
   [

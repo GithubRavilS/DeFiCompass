@@ -3468,25 +3468,35 @@
         return Number.isFinite(n) ? n : NaN;
       }
 
-      function isLabsStrategyLive(strategy, nowMs) {
+      function labsStrategyStatus(strategy, nowMs) {
+        if (!strategy) return "disabled";
+        if (strategy.status === "disabled") return "disabled";
+        if (strategy.status === "matured") return "matured";
         var now = nowMs == null ? Date.now() : nowMs;
-        if (!strategy || strategy.status === "disabled" || strategy.status === "matured") return false;
         var mat = parseMaturityMs(strategy.maturityAt);
-        if (Number.isFinite(mat) && now >= mat) return false;
-        return true;
+        if (Number.isFinite(mat) && now >= mat) return "matured";
+        return strategy.status === "active" ? "active" : "disabled";
+      }
+
+      function isLabsStrategyLive(strategy, nowMs) {
+        return labsStrategyStatus(strategy, nowMs) === "active";
       }
 
       function isLiveCompassTool(tool, nowMs) {
-        var now = nowMs == null ? Date.now() : nowMs;
         if (!tool) return false;
         if (isDisabledCurveMonadPool(tool)) return false;
-        if (tool.strategyStatus === "disabled" || tool.strategyStatus === "matured") return false;
-        var mat = parseMaturityMs(tool.maturityAt);
-        if (Number.isFinite(mat) && now >= mat) return false;
-        return true;
+        return (
+          labsStrategyStatus(
+            {
+              status: tool.strategyStatus || tool.status,
+              maturityAt: tool.maturityAt,
+            },
+            nowMs,
+          ) === "active"
+        );
       }
 
-      function labsStableToTool(strategy) {
+      function labsStableToTool(strategy, nowMs) {
         var tool = normalizeTool({
           id: strategy.id,
           strategyId: strategy.id,
@@ -3512,15 +3522,17 @@
           sourceUrl: strategy.sourceUrl,
           maturityAt: strategy.maturityAt,
           maturityKind: strategy.maturityKind || "",
-          strategyStatus: strategy.status,
+          strategyStatus: labsStrategyStatus(strategy, nowMs),
           marketAddress: strategy.marketAddress,
           tokenAddress: strategy.tokenAddress,
           settlementAsset: strategy.settlementAsset || "",
           skipTvl: true,
-          status: strategy.status,
+          status: labsStrategyStatus(strategy, nowMs),
         });
         tool.savedAprPct = String(strategy.savedAprPct);
         tool.apy = tool.savedAprPct;
+        tool.status = labsStrategyStatus(strategy, nowMs);
+        tool.strategyStatus = tool.status;
         return tool;
       }
 
@@ -3542,7 +3554,7 @@
         });
         LABS_STABLE_STRATEGIES.forEach(function (s) {
           if (!isLabsStrategyLive(s, now)) return;
-          base.push(labsStableToTool(s));
+          base.push(labsStableToTool(s, now));
         });
         return base;
       }

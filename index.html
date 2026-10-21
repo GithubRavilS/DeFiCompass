@@ -5317,7 +5317,15 @@
       }
 
       function isSavedReviewRate(tool) {
-        return tool && tool.rateKind === "review-saved";
+        return !!(
+          tool &&
+          (tool.rateKind === "review-saved" ||
+            (tool.strategyId && String(tool.strategyId).indexOf("labs-") === 0))
+        );
+      }
+
+      function isSevenDayMeasuredTool(tool) {
+        return !isSavedReviewRate(tool);
       }
 
       function formatSavedRateNote(tool) {
@@ -6168,9 +6176,7 @@
 
       /** Цвет плитки heatmap: квантили по всем видимым инструментам (min–max APY), не фиксированные пороги */
       function heatmapApyColorClass(apy) {
-        var pool = getVisibleTools().filter(function (x) {
-          return !isSavedReviewRate(x);
-        });
+        var pool = getVisibleTools().filter(isSevenDayMeasuredTool);
         var vals = pool
           .map(function (x) {
             return parseFloat(x.apy);
@@ -6854,9 +6860,7 @@
 
       function renderHeatmap(query) {
         const container = document.getElementById("heatmapContainer");
-        var visible = getDashboardDisplayTools().filter(function (tool) {
-          return !isSavedReviewRate(tool);
-        });
+        var visible = getDashboardDisplayTools().filter(isSevenDayMeasuredTool);
         if (query) {
           visible = visible.filter(function (tool) {
             return toolMatchesQuery(tool, query);

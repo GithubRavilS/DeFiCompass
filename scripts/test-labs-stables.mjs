@@ -7,6 +7,7 @@ const {
   isLabsStrategyLive,
   applyLabsStableCatalog,
   labsStrategyStatus,
+  isSavedReviewRate,
 } = require("../lib/labs-stable-strategies.js");
 
 function assert(cond, msg) {
@@ -351,6 +352,15 @@ assert(usd3Row.liveEntryAprPct === "99.9", "sheet live APY is stored as a separa
 assert(
   usd3Row.liveEntryAprPct !== usd3Row.savedAprPct,
   "live entry must not replace the saved rate",
+);
+merged
+  .filter((t) => t.strategyId)
+  .forEach((t) => {
+    assert(isSavedReviewRate(t), `${t.strategyId} is a saved review rate`);
+  });
+assert(
+  !merged.filter((t) => !isSavedReviewRate(t)).some((t) => t.strategyId),
+  "saved Labs rates stay out of the 7-day measured pool",
 );
 
 console.log("test-labs-stables: ok");

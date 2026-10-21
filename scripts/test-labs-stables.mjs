@@ -76,6 +76,14 @@ const fxb = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-fxb-20261231");
   assert(!isLabsStrategyLive(s, mat), `${s.id} hidden at maturity without redeploy`);
 });
 assert(fxb.maturityAt === "2027-01-01T00:00:00.000Z", "FXB uses contract MATURITY_TIMESTAMP");
+assert(
+  fxb.settlementAsset === "0x853d955acef822db058eb8505911ed77f175b99e",
+  "FXB FRAX() settlement is Legacy FRAX",
+);
+assert(
+  strc.descRu.startsWith("PT на базе токенизированного STRC."),
+  "STRCx card uses the short review blurb",
+);
 assert(Date.parse(fxb.maturityAt) / 1000 === 1798761600, "FXB MATURITY_TIMESTAMP unix");
 assert(
   strc.maturityAt === "2026-11-26T00:00:00.000Z",
@@ -188,10 +196,6 @@ const publicationUrls = {
 LABS_STABLE_STRATEGIES.forEach((s) => {
   assert(s.sourceUrl === publicationUrls[s.id], `${s.id} publication URL`);
   assert(!s.sourceUrl.endsWith("."), `${s.id} publication URL has no trailing period`);
-  assert(
-    s.extraLinks.some((item) => item.url === s.sourceUrl),
-    `${s.id} extra links include the publication`,
-  );
 });
 assert(
   merged.find((t) => t.strategyId === "labs-pt-usd3").sourceUrl === publicationUrls["labs-pt-usd3"],
@@ -292,9 +296,8 @@ const extraUrls = {
   "labs-pt-usd3": [
     "https://app.morpho.org/ethereum/variable/0xf8c5aa31ea6b2a068a9eddb46dd110cae57bf0f12be9583a3f9a818effecba89/pt-usd3-17dec2026-usdc#market",
     "https://fluid.io/1/lite/usdc?mode=deposit",
-    "https://t.me/c/2520601362/233/740",
   ],
-  "labs-pt-strcx": ["https://t.me/c/2520601362/292/802"],
+  "labs-pt-strcx": [],
   "labs-fxb-20261231": [
     "https://www.geckoterminal.com/eth/pools/0xe035e27a8ed6842b478933820f90093d205f7098",
     "https://app.frax.finance/fxb/bonds",
@@ -317,8 +320,8 @@ LABS_STABLE_STRATEGIES.forEach((s) => {
 });
 assert(fxb.primaryUrl.includes("/1/limit/"), "FXB opens Cowswap limit");
 assert(
-  Array.isArray(stored.extraLinks) && stored.extraLinks.length >= 3,
-  "extra links on live row",
+  Array.isArray(stored.extraLinks) && stored.extraLinks.length === 2,
+  "USD3 extra links are Morpho and Fluid",
 );
 assert(stored.maturityAt === "2026-12-17T00:00:00.000Z", "maturityAt UTC on live row");
 assert(
@@ -364,10 +367,9 @@ assert(
   !sheetOverwrite.some((t) => String(t.apy) === "99.9"),
   "live sheet duplicate of known market dropped from card APY",
 );
-assert(usd3Row.liveEntryAprPct === "99.9", "sheet live APY is stored as a separate entry rate");
 assert(
-  usd3Row.liveEntryAprPct !== usd3Row.savedAprPct,
-  "live entry must not replace the saved rate",
+  usd3Row.liveEntryAprPct == null,
+  "sheet APY is not treated as a live entry rate until that field is set on purpose",
 );
 merged
   .filter((t) => t.strategyId)

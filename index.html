@@ -2930,7 +2930,7 @@
           filterRange: "Диапазон",
           filterReset: "Сбросить фильтры",
           filterBarAria: "Фильтры по платформе, блокчейну, комиссии и диапазону",
-          savedRateLabel: "Сохранённая ставка исходного разбора",
+          savedRateLabel: "Ставка при добавлении",
           publishedAtLabel: "публикация",
           savedRateLiveEntry: "Текущий вход",
           savedRatePtOnly: "только базовая PT, не Morpho+Fluid",
@@ -3038,7 +3038,7 @@
           filterRange: "Range",
           filterReset: "Reset filters",
           filterBarAria: "Filters by platform, blockchain, fee tier, and price range",
-          savedRateLabel: "Saved rate from the original review",
+          savedRateLabel: "Rate at add",
           publishedAtLabel: "published",
           savedRateLiveEntry: "Live entry",
           savedRatePtOnly: "base PT only, not Morpho+Fluid",
@@ -3351,11 +3351,6 @@
               labelEn: "Fluid Lite USDC",
               url: "https://fluid.io/1/lite/usdc?mode=deposit",
             },
-            {
-              labelRu: "Исходный разбор",
-              labelEn: "Source review",
-              url: "https://t.me/c/2520601362/233/740",
-            },
           ],
         },
         {
@@ -3380,16 +3375,10 @@
           maturityAt: "2026-11-26T00:00:00.000Z",
           maturityKind: "pt-issue",
           descRu:
-            "PT на базе токенизированного STRC. Ставка сохранена на момент разбора; долларовый результат зависит также от стоимости расчётного актива. Не подменять эту позицию обычными акциями STRC, YT или LP на Pendle. Не использовать дивидендную ставку STRC 12% вместо ставки PT. Дата 26 ноября относится к PT-выпуску. Самим бессрочным привилегированным акциям STRC не присваивать дату погашения.",
+            "PT на базе токенизированного STRC. Ставка сохранена на момент разбора; долларовый результат зависит также от стоимости расчётного актива.",
           descEn:
-            "PT on tokenized STRC. The rate is saved from the review; dollar outcome also depends on the settlement asset price. This is not ordinary STRC stock, Pendle YT, or LP. Do not use the 12% STRC dividend in place of the PT rate. 26 November is the PT issue expiry. Perpetual preferred STRC has no maturity date.",
-          extraLinks: [
-            {
-              labelRu: "Исходный разбор",
-              labelEn: "Source review",
-              url: "https://t.me/c/2520601362/292/802",
-            },
-          ],
+            "PT on tokenized STRC. The rate is saved from the review; dollar outcome also depends on the settlement asset price.",
+          extraLinks: [],
         },
         {
           id: "labs-fxb-20261231",
@@ -3545,15 +3534,6 @@
           var addr = normalizeHexAddr(s.marketAddress);
           if (addr) knownAddrs[addr] = true;
         });
-        var liveById = {};
-        var liveByAddr = {};
-        (tools || []).forEach(function (t) {
-          var n = parseApyNumber(t && t.apy);
-          if (!Number.isFinite(n)) return;
-          if (t.strategyId && knownIds[t.strategyId]) liveById[t.strategyId] = String(t.apy);
-          var addr = normalizeHexAddr(t && t.link);
-          if (addr && knownAddrs[addr]) liveByAddr[addr] = String(t.apy);
-        });
         var base = (tools || []).filter(function (t) {
           if (isDisabledCurveMonadPool(t)) return false;
           if (t && t.strategyId && knownIds[t.strategyId]) return false;
@@ -3564,16 +3544,9 @@
         LABS_STABLE_STRATEGIES.forEach(function (s) {
           if (!isLabsStrategyLive(s, now)) return;
           var row = labsStableToTool(s, now);
-          var catalogLive = s.liveEntryAprPct == null ? "" : String(s.liveEntryAprPct);
-          var addr = normalizeHexAddr(s.marketAddress);
-          var sheetLive = liveById[s.id] || (addr && liveByAddr[addr]) || "";
-          var live = catalogLive || sheetLive;
-          var liveN = parseApyNumber(live);
-          var savedN = parseApyNumber(s.savedAprPct);
           row.savedAprPct = String(s.savedAprPct);
           row.apy = row.savedAprPct;
-          row.liveEntryAprPct =
-            Number.isFinite(liveN) && liveN !== savedN ? String(live) : catalogLive || null;
+          row.liveEntryAprPct = s.liveEntryAprPct == null ? null : String(s.liveEntryAprPct);
           base.push(row);
         });
         return base;

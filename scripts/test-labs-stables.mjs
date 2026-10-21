@@ -57,6 +57,7 @@ assert(
 
 const usd3 = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-pt-usd3");
 assert(usd3.maturityAt === "2026-12-17T00:00:00.000Z", "USD3 uses 17DEC contract expiry");
+assert(Date.parse(usd3.maturityAt) / 1000 === 1797465600, "USD3 expiry() unix");
 const primaryUrls = {
   "labs-pt-usd3":
     "https://app.pendle.finance/trade/markets/0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e/swap?chain=ethereum&view=pt&chart=price",
@@ -75,10 +76,12 @@ const fxb = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-fxb-20261231");
   assert(!isLabsStrategyLive(s, mat), `${s.id} hidden at maturity without redeploy`);
 });
 assert(fxb.maturityAt === "2027-01-01T00:00:00.000Z", "FXB uses contract MATURITY_TIMESTAMP");
+assert(Date.parse(fxb.maturityAt) / 1000 === 1798761600, "FXB MATURITY_TIMESTAMP unix");
 assert(
   strc.maturityAt === "2026-11-26T00:00:00.000Z",
   "STRCx uses contract PT expiry, not the 25 Nov UI label",
 );
+assert(Date.parse(strc.maturityAt) / 1000 === 1795651200, "STRCx expiry() unix");
 assert(
   Date.parse(usd3.maturityAt) === Date.UTC(2026, 11, 17),
   "USD3 maturityAt is 17 Dec 2026 00:00 UTC",

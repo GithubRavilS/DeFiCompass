@@ -3592,6 +3592,26 @@
           .join(",");
       }
 
+      var __labsHideTimer = null;
+      function scheduleNextLabsHide() {
+        if (__labsHideTimer) {
+          clearTimeout(__labsHideTimer);
+          __labsHideTimer = null;
+        }
+        var now = Date.now();
+        var next = Infinity;
+        LABS_STABLE_STRATEGIES.forEach(function (s) {
+          var mat = parseMaturityMs(s.maturityAt);
+          if (Number.isFinite(mat) && mat > now && mat < next) next = mat;
+        });
+        if (next === Infinity) return;
+        var delay = Math.max(50, Math.min(next - now + 25, 2147483647));
+        __labsHideTimer = setTimeout(function () {
+          syncLabsStableVisibility();
+          scheduleNextLabsHide();
+        }, delay);
+      }
+
       function syncLabsStableVisibility() {
         var sig = labsVisibleSignature();
         if (__labsVisibleSig === sig) return;
@@ -6014,12 +6034,17 @@
       function favoriteItemIsLive(item) {
         if (!item) return false;
         if (isDisabledCurveMonadPool(item)) return false;
+        if (item.strategyId) {
+          var catalog = LABS_STABLE_STRATEGIES.filter(function (s) {
+            return s.id === item.strategyId;
+          })[0];
+          if (catalog) return isLabsStrategyLive(catalog);
+        }
         var live = (typeof allTools !== "undefined" ? allTools : []).find(function (t) {
           return sameFavoriteIdentity(item, t);
         });
         if (live) return isLiveCompassTool(live);
-        if (item.maturityAt && Date.now() >= parseMaturityMs(item.maturityAt)) return false;
-        return true;
+        return isLiveCompassTool(item);
       }
 
       function isFavorite(tool) {
@@ -6572,8 +6597,12 @@
           });
         });
         setInterval(syncLabsStableVisibility, 10000);
+        scheduleNextLabsHide();
         document.addEventListener("visibilitychange", function () {
-          if (!document.hidden) syncLabsStableVisibility();
+          if (!document.hidden) {
+            syncLabsStableVisibility();
+            scheduleNextLabsHide();
+          }
         });
         var mobileMenuBtn = document.getElementById("mobileMenuBtn");
         var sidebar = document.getElementById("sidebar");

@@ -36,6 +36,14 @@ const afterStrc = Date.parse("2026-11-26T00:00:00.000Z");
 const strc = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-pt-strcx");
 assert(isLabsStrategyLive(strc, beforeMat), "STRCx live before expiry");
 assert(!isLabsStrategyLive(strc, afterStrc), "STRCx hidden at expiry");
+assert(
+  isLabsStrategyLive(strc, Date.parse("2026-11-25T23:59:59.999Z")),
+  "live while now is strictly before maturityAt",
+);
+assert(
+  !isLabsStrategyLive(strc, Date.parse("2026-11-26T00:00:00.000Z")),
+  "hidden at the exact UTC maturityAt",
+);
 assert(labsStrategyStatus(strc, beforeMat) === "active", "STRCx active before expiry");
 assert(labsStrategyStatus(strc, afterStrc) === "matured", "STRCx matured at expiry");
 assert(
@@ -61,6 +69,11 @@ assert(usd3.primaryUrl === primaryUrls["labs-pt-usd3"], "USD3 primary open URL")
 assert(usd3.primaryUrl.includes("view=pt"), "USD3 opens PT view");
 
 const fxb = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-fxb-20261231");
+[usd3, strc, fxb].forEach((s) => {
+  const mat = Date.parse(s.maturityAt);
+  assert(isLabsStrategyLive(s, mat - 1), `${s.id} live 1ms before maturity`);
+  assert(!isLabsStrategyLive(s, mat), `${s.id} hidden at maturity without redeploy`);
+});
 assert(fxb.maturityAt === "2027-01-01T00:00:00.000Z", "FXB uses contract MATURITY_TIMESTAMP");
 assert(
   strc.maturityAt === "2026-11-26T00:00:00.000Z",

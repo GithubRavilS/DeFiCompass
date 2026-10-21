@@ -3545,6 +3545,15 @@
           var addr = normalizeHexAddr(s.marketAddress);
           if (addr) knownAddrs[addr] = true;
         });
+        var liveById = {};
+        var liveByAddr = {};
+        (tools || []).forEach(function (t) {
+          var n = parseApyNumber(t && t.apy);
+          if (!Number.isFinite(n)) return;
+          if (t.strategyId && knownIds[t.strategyId]) liveById[t.strategyId] = String(t.apy);
+          var addr = normalizeHexAddr(t && t.link);
+          if (addr && knownAddrs[addr]) liveByAddr[addr] = String(t.apy);
+        });
         var base = (tools || []).filter(function (t) {
           if (isDisabledCurveMonadPool(t)) return false;
           if (t && t.strategyId && knownIds[t.strategyId]) return false;
@@ -3554,7 +3563,18 @@
         });
         LABS_STABLE_STRATEGIES.forEach(function (s) {
           if (!isLabsStrategyLive(s, now)) return;
-          base.push(labsStableToTool(s, now));
+          var row = labsStableToTool(s, now);
+          var catalogLive = s.liveEntryAprPct == null ? "" : String(s.liveEntryAprPct);
+          var addr = normalizeHexAddr(s.marketAddress);
+          var sheetLive = liveById[s.id] || (addr && liveByAddr[addr]) || "";
+          var live = catalogLive || sheetLive;
+          var liveN = parseApyNumber(live);
+          var savedN = parseApyNumber(s.savedAprPct);
+          row.savedAprPct = String(s.savedAprPct);
+          row.apy = row.savedAprPct;
+          row.liveEntryAprPct =
+            Number.isFinite(liveN) && liveN !== savedN ? String(live) : catalogLive || null;
+          base.push(row);
         });
         return base;
       }
@@ -4623,6 +4643,7 @@
         }
         tools.forEach(function (t) {
           if (t.categoryId !== categoryId) return;
+          if (isSavedReviewRate(t) || t.strategyId) return;
           var patch =
             index[patchKeyFull(t)] ||
             index[patchKeyPlatformChainFee(t)] ||
@@ -5941,6 +5962,7 @@
           strategyId: tool.strategyId || "",
           rateKind: tool.rateKind || "",
           publishedAt: tool.publishedAt || "",
+          liveEntryAprPct: tool.liveEntryAprPct || "",
           sourceUrl: tool.sourceUrl || "",
           primaryUrl: tool.primaryUrl || tool.link || "",
           extraLinks: Array.isArray(tool.extraLinks) ? tool.extraLinks.slice() : [],

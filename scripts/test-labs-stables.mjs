@@ -345,11 +345,12 @@ assert(
 );
 assert(
   !sheetOverwrite.some((t) => String(t.apy) === "99.9"),
-  "live sheet duplicate of known market dropped",
+  "live sheet duplicate of known market dropped from card APY",
 );
+assert(usd3Row.liveEntryAprPct === "99.9", "sheet live APY is stored as a separate entry rate");
 assert(
-  usd3Row.liveEntryAprPct == null,
-  "future live entry rate is a separate field, not the card APY",
+  usd3Row.liveEntryAprPct !== usd3Row.savedAprPct,
+  "live entry must not replace the saved rate",
 );
 
 console.log("test-labs-stables: ok");

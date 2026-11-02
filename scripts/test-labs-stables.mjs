@@ -8,6 +8,8 @@ const {
   applyLabsStableCatalog,
   labsStrategyStatus,
   isSavedReviewRate,
+  isWalletLiveRate,
+  computeWalletLiveApy,
 } = require("../lib/labs-stable-strategies.js");
 
 function assert(cond, msg) {
@@ -65,12 +67,15 @@ const primaryUrls = {
     "https://app.pendle.finance/trade/markets/0x8ce3a13852d13e0e991c677a8c6137584e2b7635/swap?chain=ethereum&view=pt&chart=price",
   "labs-fxb-20261231":
     "https://swap.cow.fi/#/1/limit/0x853d955acef822db058eb8505911ed77f175b99e/0x76237bcfdbe8e06fb774663add96216961df4ff3",
+  "labs-pendle-lp-apxusd-20270210":
+    "https://app.pendle.finance/trade/pools/0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a/zap/in?chain=ethereum",
 };
 assert(usd3.primaryUrl === primaryUrls["labs-pt-usd3"], "USD3 primary open URL");
 assert(usd3.primaryUrl.includes("view=pt"), "USD3 opens PT view");
 
 const fxb = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-fxb-20261231");
-[usd3, strc, fxb].forEach((s) => {
+const lp = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-pendle-lp-apxusd-20270210");
+[usd3, strc, fxb, lp].forEach((s) => {
   const mat = Date.parse(s.maturityAt);
   assert(isLabsStrategyLive(s, mat - 1), `${s.id} live 1ms before maturity`);
   assert(!isLabsStrategyLive(s, mat), `${s.id} hidden at maturity without redeploy`);
@@ -120,7 +125,7 @@ const merged = applyLabsStableCatalog(
   beforeMat,
 );
 assert(!merged.some((t) => isDisabledCurveMonadPool(t)), "curve monad excluded from catalog apply");
-assert(merged.filter((t) => t.strategyId).length === 3, "three live labs rows before STRCx expiry");
+assert(merged.filter((t) => t.strategyId).length === 4, "four live labs rows before STRCx expiry");
 assert(
   merged.some((t) => t.name === "Keep"),
   "unrelated stables remain",
@@ -131,7 +136,7 @@ assert(
   after
     .filter((t) => t.strategyId)
     .map((t) => t.strategyId)
-    .join(",") === "labs-pt-usd3,labs-fxb-20261231",
+    .join(",") === "labs-pt-usd3,labs-fxb-20261231,labs-pendle-lp-apxusd-20270210",
   "STRCx dropped after maturity, others remain",
 );
 
@@ -142,13 +147,13 @@ assert(rates["labs-pt-usd3"] === "14.0", "saved 14.0");
 assert(rates["labs-pt-strcx"] === "22.1", "saved 22.1");
 assert(rates["labs-fxb-20261231"] === "16.0", "saved 16.0");
 merged
-  .filter((t) => t.strategyId)
+  .filter((t) => t.strategyId && isSavedReviewRate(t))
   .forEach((t) => {
     assert(t.apy === t.savedAprPct, `${t.strategyId} APY is the stored annual rate`);
   });
 assert(
   merged
-    .filter((t) => t.strategyId)
+    .filter((t) => t.strategyId && isSavedReviewRate(t))
     .sort((a, b) => parseFloat(b.apy) - parseFloat(a.apy))
     .map((t) => t.apy)
     .join(",") === "22.1,16.0,14.0",
@@ -175,11 +180,15 @@ LABS_STABLE_STRATEGIES.forEach((s) => {
   requiredKeys.forEach((k) => {
     assert(Object.prototype.hasOwnProperty.call(s, k), `${s.id} missing ${k}`);
   });
-  assert(s.rateKind === "review-saved", `${s.id} rateKind`);
-  assert(
-    s.rateKindLabel === "сохранённая ставка исходного разбора",
-    `${s.id} rate type is the original review rate`,
-  );
+  if (s.id === "labs-pendle-lp-apxusd-20270210") {
+    assert(s.rateKind === "wallet-live", `${s.id} rateKind`);
+  } else {
+    assert(s.rateKind === "review-saved", `${s.id} rateKind`);
+    assert(
+      s.rateKindLabel === "сохранённая ставка исходного разбора",
+      `${s.id} rate type is the original review rate`,
+    );
+  }
   assert(allowedStatus.has(s.status), `${s.id} status`);
   assert(typeof s.publishedAt === "string", `${s.id} publishedAt stored, not invented`);
   assert(s.liveEntryAprPct == null, `${s.id} live entry stays a separate empty field`);
@@ -194,6 +203,10 @@ const publicationUrls = {
   "labs-fxb-20261231": "https://t.me/c/2520601362/304/806",
 };
 LABS_STABLE_STRATEGIES.forEach((s) => {
+  if (s.id === "labs-pendle-lp-apxusd-20270210") {
+    assert(s.sourceUrl === "", `${s.id} has no review publication URL`);
+    return;
+  }
   assert(s.sourceUrl === publicationUrls[s.id], `${s.id} publication URL`);
   assert(!s.sourceUrl.endsWith("."), `${s.id} publication URL has no trailing period`);
 });
@@ -256,6 +269,12 @@ const identity = {
     marketAddress: "0x76237bcfdbe8e06fb774663add96216961df4ff3",
     tokenAddress: "0x76237bcfdbe8e06fb774663add96216961df4ff3",
   },
+  "labs-pendle-lp-apxusd-20270210": {
+    protocol: "Pendle",
+    chain: "Ethereum",
+    marketAddress: "0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a",
+    tokenAddress: "0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a",
+  },
 };
 Object.keys(identity).forEach((id) => {
   const row = merged.find((t) => t.strategyId === id);
@@ -303,6 +322,9 @@ const extraUrls = {
     "https://app.frax.finance/fxb/bonds",
     "https://t.me/c/2520601362/304/806",
     "https://t.me/c/2520601362/304/808",
+  ],
+  "labs-pendle-lp-apxusd-20270210": [
+    "https://app.pendle.finance/trade/markets/0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a/swap?chain=ethereum&view=pt",
   ],
 };
 LABS_STABLE_STRATEGIES.forEach((s) => {
@@ -372,13 +394,28 @@ assert(
   "sheet APY is not treated as a live entry rate until that field is set on purpose",
 );
 merged
-  .filter((t) => t.strategyId)
+  .filter((t) => t.strategyId && t.rateKind === "review-saved")
   .forEach((t) => {
     assert(isSavedReviewRate(t), `${t.strategyId} is a saved review rate`);
   });
 assert(
-  !merged.filter((t) => !isSavedReviewRate(t)).some((t) => t.strategyId),
-  "saved Labs rates stay out of the 7-day measured pool",
+  isWalletLiveRate(merged.find((t) => t.strategyId === "labs-pendle-lp-apxusd-20270210")),
+  "apxUSD LP is a live wallet rate",
 );
+assert(
+  Math.abs(
+    computeWalletLiveApy(
+      3512.69,
+      3640.01,
+      Date.parse("2026-10-28T15:44:28.534Z"),
+      Date.parse("2026-11-02T14:30:00.000Z"),
+    ) - 268.3,
+  ) < 2,
+  "realized APY annualizes cost vs current+claimable",
+);
+assert(lp.costBasisUsd === 3512.69, "LP cost is the two zap-ins");
+assert(lp.wallet.toLowerCase() === "0x1fb07ac5643428710ee3bf5a73a4a66d0762f355", "LP wallet");
+assert(lp.maturityAt === "2027-02-11T00:00:00.000Z", "LP hides at Pendle expiry");
+assert(!isSavedReviewRate(lp), "LP is not a frozen review rate");
 
 console.log("test-labs-stables: ok");

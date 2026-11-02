@@ -3558,6 +3558,41 @@
             },
           ],
         },
+        {
+          id: "labs-pendle-lp-apxusd-20270210",
+          status: "active",
+          protocol: "Pendle",
+          title: "Pendle LP · apxUSD",
+          pair: "LP-apxUSD-10FEB2027",
+          chain: "Ethereum",
+          chainId: 1,
+          marketAddress: "0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a",
+          tokenAddress: "0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a",
+          wallet: "0x1fb07ac5643428710ee3bf5a73a4a66d0762f355",
+          costBasisUsd: 3512.69,
+          openDateMs: Date.parse("2026-10-28T15:44:28.534Z"),
+          savedAprPct: "214.0",
+          liveEntryAprPct: null,
+          rateKind: "wallet-live",
+          rateKindLabel: "фактическая доходность позиции",
+          rateScope: "pendle-lp-no-il",
+          publishedAt: "",
+          sourceUrl: "",
+          primaryUrl:
+            "https://app.pendle.finance/trade/pools/0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a/zap/in?chain=ethereum",
+          maturityAt: "2027-02-11T00:00:00.000Z",
+          descRu:
+            "Pendle LP без IL: SY + PT apxUSD до 10 февраля 2027. Ставка на карточке — фактическая с двух входов (2010,32 + 1502,37) плюс несклейменный PENDLE, пересчитанная в год. Это не 244% с экрана Pendle: там форвард пула.",
+          descEn:
+            "Pendle LP with no IL: SY + PT apxUSD to 10 Feb 2027. The card rate is realized from two entries (2010.32 + 1502.37) plus unclaimed PENDLE, annualized. It is not the 244% pool forward APY on Pendle.",
+          extraLinks: [
+            {
+              labelRu: "PT apxUSD",
+              labelEn: "PT apxUSD",
+              url: "https://app.pendle.finance/trade/markets/0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a/swap?chain=ethereum&view=pt",
+            },
+          ],
+        },
       ];
 
       function normalizeHexAddr(value) {
@@ -3615,7 +3650,22 @@
         );
       }
 
+      function isWalletLiveRate(tool) {
+        return !!(tool && tool.rateKind === "wallet-live");
+      }
+
+      function computeWalletLiveApy(costUsd, currentUsd, openDateMs, nowMs) {
+        var cost = Number(costUsd);
+        var current = Number(currentUsd);
+        var open = Number(openDateMs);
+        var now = nowMs == null ? Date.now() : nowMs;
+        if (!(cost > 0) || !isFinite(current) || !(open > 0)) return null;
+        var days = Math.max((now - open) / 86400000, 1 / 24);
+        return ((current - cost) / cost) * 100 * (365 / days);
+      }
+
       function labsStableToTool(strategy, nowMs) {
+        var live = isWalletLiveRate(strategy);
         var tool = normalizeTool({
           id: strategy.id,
           strategyId: strategy.id,
@@ -3624,7 +3674,7 @@
           platform: strategy.title,
           protocol: strategy.protocol,
           pair: strategy.pair,
-          savedAprPct: strategy.savedAprPct,
+          savedAprPct: live ? "" : strategy.savedAprPct,
           liveEntryAprPct: strategy.liveEntryAprPct == null ? null : String(strategy.liveEntryAprPct),
           apy: strategy.savedAprPct,
           chain: strategy.chain,
@@ -3645,11 +3695,19 @@
           marketAddress: strategy.marketAddress,
           tokenAddress: strategy.tokenAddress,
           settlementAsset: strategy.settlementAsset || "",
+          wallet: strategy.wallet || "",
+          costBasisUsd: strategy.costBasisUsd == null ? "" : strategy.costBasisUsd,
+          openDateMs: strategy.openDateMs || 0,
           skipTvl: true,
           status: labsStrategyStatus(strategy, nowMs),
         });
-        tool.savedAprPct = String(strategy.savedAprPct);
-        tool.apy = tool.savedAprPct;
+        if (live) {
+          tool.savedAprPct = "";
+          tool.apy = String(strategy.savedAprPct || "0");
+        } else {
+          tool.savedAprPct = String(strategy.savedAprPct);
+          tool.apy = tool.savedAprPct;
+        }
         tool.status = labsStrategyStatus(strategy, nowMs);
         tool.strategyStatus = tool.status;
         return tool;
@@ -3674,12 +3732,92 @@
         LABS_STABLE_STRATEGIES.forEach(function (s) {
           if (!isLabsStrategyLive(s, now)) return;
           var row = labsStableToTool(s, now);
-          row.savedAprPct = String(s.savedAprPct);
-          row.apy = row.savedAprPct;
+          if (isWalletLiveRate(s)) {
+            row.savedAprPct = "";
+            row.apy = String(s.savedAprPct || "0");
+          } else {
+            row.savedAprPct = String(s.savedAprPct);
+            row.apy = row.savedAprPct;
+          }
           row.liveEntryAprPct = s.liveEntryAprPct == null ? null : String(s.liveEntryAprPct);
           base.push(row);
         });
         return base;
+      }
+
+      function refreshLabsLiveWalletTools(tools) {
+        var jobs = (tools || []).filter(isWalletLiveRate);
+        if (!jobs.length) return Promise.resolve(false);
+        return Promise.all(
+          jobs.map(function (tool) {
+            var wallet = String(tool.wallet || "").toLowerCase();
+            var market = normalizeHexAddr(tool.marketAddress);
+            var chainId = tool.chainId || 1;
+            if (!wallet || !market) return Promise.resolve();
+            var posUrl =
+              "https://api-v2.pendle.finance/core/v1/dashboard/positions/database/" + wallet;
+            var mktUrl =
+              "https://api-v2.pendle.finance/core/v1/" + chainId + "/markets/" + market;
+            return Promise.all([
+              fetch(posUrl).then(function (r) {
+                return r.ok ? r.json() : null;
+              }),
+              fetch(mktUrl).then(function (r) {
+                return r.ok ? r.json() : null;
+              }),
+            ])
+              .then(function (pair) {
+                var pos = pair[0];
+                var mkt = pair[1];
+                var lp = null;
+                var chains = (pos && pos.positions) || [];
+                var i;
+                var j;
+                for (i = 0; i < chains.length; i++) {
+                  var ops = chains[i].openPositions || [];
+                  for (j = 0; j < ops.length; j++) {
+                    if (String(ops[j].marketId || "").toLowerCase().indexOf(market) >= 0) {
+                      lp = ops[j].lp;
+                      break;
+                    }
+                  }
+                }
+                if (!lp) return;
+                var lpUsd = Number(lp.valuation || 0);
+                var claimUsd = 0;
+                var prices = {};
+                ((mkt && mkt.rewardTokens) || []).forEach(function (tok) {
+                  var addr = normalizeHexAddr(tok && tok.address);
+                  var px = Number(tok && tok.price && tok.price.usd);
+                  if (addr && isFinite(px)) prices[addr] = px;
+                });
+                (lp.claimTokenAmounts || []).forEach(function (c) {
+                  var addr = normalizeHexAddr(c && (c.token || c.address));
+                  var amount = Number(c && c.amount) / 1e18;
+                  if (isFinite(amount) && isFinite(prices[addr])) claimUsd += amount * prices[addr];
+                });
+                var apy = computeWalletLiveApy(
+                  tool.costBasisUsd,
+                  lpUsd + claimUsd,
+                  tool.openDateMs,
+                  Date.now(),
+                );
+                if (apy == null) return;
+                tool.apy = String(Math.round(apy * 10) / 10);
+                tool.daysWorked = Math.max((Date.now() - Number(tool.openDateMs)) / 86400000, 0);
+                var hours = Math.floor(tool.daysWorked * 24);
+                tool.period =
+                  hours < 72 ? hours + " ч" : Math.floor(tool.daysWorked) + " дн";
+                var marketApy = Number(mkt && mkt.aggregatedApy);
+                if (isFinite(marketApy)) {
+                  tool.liveEntryAprPct = String(Math.round(marketApy * 1000) / 10);
+                }
+              })
+              .catch(function () {});
+          }),
+        ).then(function () {
+          return true;
+        });
       }
 
       var __labsVisibleSig = null;
@@ -5423,7 +5561,12 @@
       }
 
       function savedAnnualRate(tool) {
-        if (tool && tool.savedAprPct != null && String(tool.savedAprPct) !== "") {
+        if (
+          isSavedReviewRate(tool) &&
+          tool &&
+          tool.savedAprPct != null &&
+          String(tool.savedAprPct) !== ""
+        ) {
           return String(tool.savedAprPct);
         }
         return tool && tool.apy != null ? String(tool.apy) : "";
@@ -5440,15 +5583,13 @@
       }
 
       function isSavedReviewRate(tool) {
-        return !!(
-          tool &&
-          (tool.rateKind === "review-saved" ||
-            (tool.strategyId && String(tool.strategyId).indexOf("labs-") === 0))
-        );
+        return !!(tool && tool.rateKind === "review-saved");
       }
 
       function isSevenDayMeasuredTool(tool) {
-        return !isSavedReviewRate(tool);
+        if (isSavedReviewRate(tool)) return false;
+        if (isWalletLiveRate(tool)) return Number(tool.daysWorked) >= 7;
+        return true;
       }
 
       function formatSavedRateNote(tool) {
@@ -5467,7 +5608,7 @@
 
       function toolNeedsInfoPanel(tool) {
         if (!tool) return false;
-        if (isSavedReviewRate(tool)) return true;
+        if (isSavedReviewRate(tool) || isWalletLiveRate(tool)) return true;
         return getToolExtraLinks(tool).length > 0;
       }
 
@@ -5865,7 +6006,7 @@
       }
 
       function shouldShowToolCardDesc(tool, categoryId) {
-        if (isSavedReviewRate(tool)) return false;
+        if (isSavedReviewRate(tool) || isWalletLiveRate(tool)) return false;
         if (!categoryUsesPoolBattleGrouping(categoryId)) return true;
         if (formatChainLabel(tool) || formatFeeLabelFromTool(tool))
           return !isPoolMetaDescription(tool);
@@ -6445,6 +6586,19 @@
       }
 
       function formatPeriodDisplay(tool) {
+        if (isWalletLiveRate(tool)) {
+          var pLive = tool.period != null ? String(tool.period).trim() : "";
+          if (pLive) {
+            var mH = pLive.match(/(\d+(?:[.,]\d+)?)\s*ч\b/i);
+            if (mH) return pLive;
+            var mD = pLive.match(/(\d+(?:[.,]\d+)?)\s*(?:дн|d|days?)\b/i);
+            if (mD) {
+              var nLive = parseFloat(mD[1].replace(",", "."));
+              if (!isNaN(nLive)) return formatDaysPlural(nLive);
+            }
+            return pLive;
+          }
+        }
         if (tool && tool.maturityAt) {
           var md = formatMaturityDateLabel(tool.maturityAt);
           if (md) {
@@ -6806,11 +6960,23 @@
           });
         });
         setInterval(syncLabsStableVisibility, 10000);
+        setInterval(function () {
+          refreshLabsLiveWalletTools(allTools).then(function (ok) {
+            if (!ok) return;
+            renderDashboard();
+            if (currentCategory) rerenderCurrentCategoryTools();
+          });
+        }, 60000);
         scheduleNextLabsHide();
         document.addEventListener("visibilitychange", function () {
           if (!document.hidden) {
             syncLabsStableVisibility();
             scheduleNextLabsHide();
+            refreshLabsLiveWalletTools(allTools).then(function (ok) {
+              if (!ok) return;
+              renderDashboard();
+              if (currentCategory) rerenderCurrentCategoryTools();
+            });
           }
         });
         var mobileMenuBtn = document.getElementById("mobileMenuBtn");
@@ -6864,6 +7030,11 @@
         }
         if (currentCategory && VISIBLE_CATEGORY_IDS.indexOf(currentCategory) === -1)
           currentCategory = null;
+        refreshLabsLiveWalletTools(allTools).then(function (ok) {
+          if (!ok) return;
+          renderDashboard();
+          if (currentCategory) rerenderCurrentCategoryTools();
+        });
       }
 
       function finishDataLoad() {

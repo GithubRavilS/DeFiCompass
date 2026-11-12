@@ -1,0 +1,28 @@
+{
+  "labs-looping-pt-usd3-usdt": [
+    {
+      "date": "2026-11-10",
+      "apyPct": 57.5616,
+      "fixedApy": 0.15434904524130255,
+      "borrowApy": 0.08953867078044292,
+      "leverage": 7.5,
+      "source": "pendle-charts"
+    },
+    {
+      "date": "2026-11-11",
+      "apyPct": 70.1287,
+      "fixedApy": 0.15152793376939777,
+      "borrowApy": 0.06694964439146354,
+      "leverage": 7.5,
+      "source": "pendle-charts"
+    },
+    {
+      "date": "2026-11-12",
+      "apyPct": 72.0328,
+      "fixedApy": 0.15138491341199378,
+      "borrowApy": 0.0638551593650259,
+      "leverage": 7.5,
+      "source": "pendle-charts"
+    }
+  ]
+}

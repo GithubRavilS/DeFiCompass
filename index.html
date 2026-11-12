@@ -3062,6 +3062,7 @@
           savedRatePtOnly: "только базовая PT, не Morpho+Fluid",
           savedRatePtStrc: "PT 22,1% · воркшоп 5 октября, не дивиденд STRC 12%",
           savedRateFxb: "сохранённый ориентир, без пересчёта к погашению",
+          savedRateDailyAvg: "среднее дневных ставок с запуска",
           maturityUntil: "до",
           ptIssueUntil: "PT-выпуск до",
           extraLinksLabel: "Дополнительно",
@@ -3172,6 +3173,7 @@
           savedRatePtOnly: "base PT only, not Morpho+Fluid",
           savedRatePtStrc: "PT 22.1% · 5 Oct workshop, not the 12% STRC dividend",
           savedRateFxb: "saved review rate, not pulled to maturity",
+          savedRateDailyAvg: "average of daily rates since launch",
           maturityUntil: "until",
           ptIssueUntil: "PT issue until",
           extraLinksLabel: "More links",
@@ -3593,7 +3595,53 @@
             },
           ],
         },
+        {
+          id: "labs-looping-pt-usd3-usdt",
+          status: "active",
+          protocol: "Pendle",
+          title: "Looping · PT-USD3 — USDT",
+          pair: "PT-USD3 / USDT 7.5x",
+          chain: "Ethereum",
+          chainId: 1,
+          marketAddress: "0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e",
+          tokenAddress: "0x7f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d",
+          leverage: 7.5,
+          openDateMs: Date.parse("2026-11-10T00:00:00.000Z"),
+          launchDate: "2026-11-10",
+          savedAprPct: "66.6",
+          liveEntryAprPct: null,
+          rateKind: "daily-average",
+          rateKindLabel: "среднее дневных ставок с запуска",
+          rateScope: "pendle-looping-usd3-usdt",
+          publishedAt: "",
+          sourceUrl: "",
+          primaryUrl: "https://app.pendle.finance/trade/looping?chain=ethereum",
+          maturityAt: "2026-12-17T00:00:00.000Z",
+          descRu:
+            "Looping PT-USD3 против USDT на Morpho, плечо 7,5×. Цифра на карточке — среднее всех дневных снимков Pendle с 10 ноября 2026, а не последняя ставка с экрана и не ставка на дату входа.",
+          descEn:
+            "PT-USD3 looping vs USDT on Morpho at 7.5×. The card rate is the mean of every daily Pendle snapshot since 10 Nov 2026, not the last print and not the entry rate.",
+          extraLinks: [
+            {
+              labelRu: "Morpho · PT-USD3 / USDT",
+              labelEn: "Morpho · PT-USD3 / USDT",
+              url: "https://app.morpho.org/ethereum/variable/0x37a584c981f6f59f7532ae5565732ee54647773d425978eb94d4cd29c21ff53b",
+            },
+            {
+              labelRu: "PT-USD3 на Pendle",
+              labelEn: "PT-USD3 on Pendle",
+              url: "https://app.pendle.finance/trade/markets/0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e/swap?chain=ethereum&view=pt",
+            },
+          ],
+        },
       ];
+      var LABS_DAILY_APY_SEED = {
+        "labs-looping-pt-usd3-usdt": [
+          { date: "2026-11-10", apyPct: 57.5616 },
+          { date: "2026-11-11", apyPct: 70.1287 },
+          { date: "2026-11-12", apyPct: 72.0328 },
+        ],
+      };
 
       function normalizeHexAddr(value) {
         var m = String(value || "")
@@ -3654,6 +3702,14 @@
         return !!(tool && tool.rateKind === "wallet-live");
       }
 
+      function isDailyAverageRate(tool) {
+        return !!(tool && tool.rateKind === "daily-average");
+      }
+
+      function usesLiveRefresh(tool) {
+        return isWalletLiveRate(tool) || isDailyAverageRate(tool);
+      }
+
       function computeWalletLiveApy(costUsd, currentUsd, openDateMs, nowMs) {
         var cost = Number(costUsd);
         var current = Number(currentUsd);
@@ -3665,7 +3721,7 @@
       }
 
       function labsStableToTool(strategy, nowMs) {
-        var live = isWalletLiveRate(strategy);
+        var live = usesLiveRefresh(strategy);
         var tool = normalizeTool({
           id: strategy.id,
           strategyId: strategy.id,
@@ -3698,6 +3754,8 @@
           wallet: strategy.wallet || "",
           costBasisUsd: strategy.costBasisUsd == null ? "" : strategy.costBasisUsd,
           openDateMs: strategy.openDateMs || 0,
+          leverage: strategy.leverage == null ? "" : strategy.leverage,
+          launchDate: strategy.launchDate || "",
           skipTvl: true,
           status: labsStrategyStatus(strategy, nowMs),
         });
@@ -3717,22 +3775,31 @@
         var now = nowMs == null ? Date.now() : nowMs;
         var knownIds = {};
         var knownAddrs = {};
+        var incomingById = {};
         LABS_STABLE_STRATEGIES.forEach(function (s) {
           knownIds[s.id] = true;
           var addr = normalizeHexAddr(s.marketAddress);
           if (addr) knownAddrs[addr] = true;
         });
+        (tools || []).forEach(function (t) {
+          if (t && t.strategyId && knownIds[t.strategyId]) incomingById[t.strategyId] = t;
+        });
         var base = (tools || []).filter(function (t) {
           if (isDisabledCurveMonadPool(t)) return false;
           if (t && t.strategyId && knownIds[t.strategyId]) return false;
           var addr = normalizeHexAddr(t && t.link);
-          if (addr && knownAddrs[addr]) return false;
+          if (addr && knownAddrs[addr] && !(t && t.strategyId)) return false;
           return true;
         });
         LABS_STABLE_STRATEGIES.forEach(function (s) {
           if (!isLabsStrategyLive(s, now)) return;
+          var hydrated = incomingById[s.id];
+          if (hydrated && usesLiveRefresh(s) && hydrated.apy) {
+            base.push(hydrated);
+            return;
+          }
           var row = labsStableToTool(s, now);
-          if (isWalletLiveRate(s)) {
+          if (usesLiveRefresh(s)) {
             row.savedAprPct = "";
             row.apy = String(s.savedAprPct || "0");
           } else {
@@ -3817,6 +3884,103 @@
           }),
         ).then(function () {
           return true;
+        });
+      }
+
+      function loopingApyPctClient(fixedApy, borrowApy, leverage) {
+        var f = Number(fixedApy);
+        var b = Number(borrowApy);
+        var L = Number(leverage);
+        if (!isFinite(f) || !isFinite(b) || !(L > 1)) return null;
+        return 100 * (L * f - (L - 1) * b);
+      }
+
+      function mergeDailyApyRows(base, extra) {
+        var map = {};
+        (base || []).concat(extra || []).forEach(function (row) {
+          if (!row || !row.date) return;
+          map[String(row.date)] = row;
+        });
+        return Object.keys(map)
+          .sort()
+          .map(function (k) {
+            return map[k];
+          });
+      }
+
+      function refreshLabsDailyAverageTools(tools) {
+        var jobs = (tools || []).filter(isDailyAverageRate);
+        if (!jobs.length) return Promise.resolve(false);
+        return Promise.all(
+          jobs.map(function (tool) {
+            var id = tool.strategyId || tool.id;
+            var leverage = Number(tool.leverage || 7.5);
+            var launch = tool.launchDate || "2026-11-10";
+            var rows = ((LABS_DAILY_APY_SEED && LABS_DAILY_APY_SEED[id]) || []).slice();
+            if (tool.dailyApyHistory && tool.dailyApyHistory.length) {
+              rows = mergeDailyApyRows(rows, tool.dailyApyHistory);
+            }
+            var url =
+              "https://api-v2.pendle.finance/core/v1/pt-looping/loop/pts/1/0x7f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d/looping";
+            return fetch(url)
+              .then(function (r) {
+                return r.ok ? r.json() : null;
+              })
+              .then(function (payload) {
+                var options = (payload && payload.options) || [];
+                var usdt = null;
+                var i;
+                for (i = 0; i < options.length; i++) {
+                  if (String(options[i].debtSymbol || "").toUpperCase() === "USDT") {
+                    usdt = options[i];
+                    break;
+                  }
+                }
+                if (usdt && usdt.data) {
+                  var fixed = Number(
+                    usdt.data.reference && usdt.data.reference.fixedApy != null
+                      ? usdt.data.reference.fixedApy
+                      : usdt.data.fixedApy,
+                  );
+                  var borrow = Number(usdt.data.borrowApy);
+                  var apyPct = loopingApyPctClient(fixed, borrow, leverage);
+                  if (apyPct != null) {
+                    rows = mergeDailyApyRows(rows, [
+                      {
+                        date: new Date().toISOString().slice(0, 10),
+                        apyPct: apyPct,
+                      },
+                    ]);
+                    tool.liveEntryAprPct = String(Math.round(apyPct * 10) / 10);
+                  }
+                }
+                var fromLaunch = rows.filter(function (r) {
+                  return String(r.date) >= launch && isFinite(Number(r.apyPct));
+                });
+                if (!fromLaunch.length) return;
+                var sum = 0;
+                fromLaunch.forEach(function (r) {
+                  sum += Number(r.apyPct);
+                });
+                tool.apy = String(Math.round((sum / fromLaunch.length) * 10) / 10);
+                tool.savedAprPct = "";
+                tool.sampleCount = fromLaunch.length;
+                tool.dailyApyHistory = fromLaunch;
+                tool.period = fromLaunch.length + " дн";
+              })
+              .catch(function () {});
+          }),
+        ).then(function () {
+          return true;
+        });
+      }
+
+      function refreshLabsLiveTools(tools) {
+        return Promise.all([
+          refreshLabsLiveWalletTools(tools),
+          refreshLabsDailyAverageTools(tools),
+        ]).then(function (flags) {
+          return flags[0] || flags[1];
         });
       }
 
@@ -5589,10 +5753,16 @@
       function isSevenDayMeasuredTool(tool) {
         if (isSavedReviewRate(tool)) return false;
         if (isWalletLiveRate(tool)) return Number(tool.daysWorked) >= 7;
+        if (isDailyAverageRate(tool)) return Number(tool.sampleCount) >= 7;
         return true;
       }
 
       function formatSavedRateNote(tool) {
+        if (isDailyAverageRate(tool)) {
+          var avg = t("savedRateDailyAvg");
+          if (tool.sampleCount) avg += " · " + formatDaysPlural(tool.sampleCount);
+          return avg;
+        }
         if (!isSavedReviewRate(tool)) return "";
         var note = t("savedRateLabel");
         if (tool.rateScope === "pt-only") note += " · " + t("savedRatePtOnly");
@@ -6006,7 +6176,7 @@
       }
 
       function shouldShowToolCardDesc(tool, categoryId) {
-        if (isSavedReviewRate(tool) || isWalletLiveRate(tool)) return false;
+        if (isSavedReviewRate(tool) || isWalletLiveRate(tool) || isDailyAverageRate(tool)) return false;
         if (!categoryUsesPoolBattleGrouping(categoryId)) return true;
         if (formatChainLabel(tool) || formatFeeLabelFromTool(tool))
           return !isPoolMetaDescription(tool);
@@ -6586,6 +6756,10 @@
       }
 
       function formatPeriodDisplay(tool) {
+        if (isDailyAverageRate(tool)) {
+          var nAvg = Number(tool.sampleCount);
+          if (nAvg > 0) return t("savedRateDailyAvg") + " · " + formatDaysPlural(nAvg);
+        }
         if (isWalletLiveRate(tool)) {
           var pLive = tool.period != null ? String(tool.period).trim() : "";
           if (pLive) {
@@ -6961,7 +7135,7 @@
         });
         setInterval(syncLabsStableVisibility, 10000);
         setInterval(function () {
-          refreshLabsLiveWalletTools(allTools).then(function (ok) {
+          refreshLabsLiveTools(allTools).then(function (ok) {
             if (!ok) return;
             renderDashboard();
             if (currentCategory) rerenderCurrentCategoryTools();
@@ -6972,7 +7146,7 @@
           if (!document.hidden) {
             syncLabsStableVisibility();
             scheduleNextLabsHide();
-            refreshLabsLiveWalletTools(allTools).then(function (ok) {
+            refreshLabsLiveTools(allTools).then(function (ok) {
               if (!ok) return;
               renderDashboard();
               if (currentCategory) rerenderCurrentCategoryTools();
@@ -7030,7 +7204,7 @@
         }
         if (currentCategory && VISIBLE_CATEGORY_IDS.indexOf(currentCategory) === -1)
           currentCategory = null;
-        refreshLabsLiveWalletTools(allTools).then(function (ok) {
+        refreshLabsLiveTools(allTools).then(function (ok) {
           if (!ok) return;
           renderDashboard();
           if (currentCategory) rerenderCurrentCategoryTools();

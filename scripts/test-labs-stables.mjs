@@ -9,8 +9,11 @@ const {
   labsStrategyStatus,
   isSavedReviewRate,
   isWalletLiveRate,
+  isDailyAverageRate,
   computeWalletLiveApy,
+  loopingApyPct,
 } = require("../lib/labs-stable-strategies.js");
+const { meanApyPct, mergeDailyRows } = require("../lib/labs-looping-apy.js");
 
 function assert(cond, msg) {
   if (!cond) throw new Error(msg);
@@ -69,13 +72,15 @@ const primaryUrls = {
     "https://swap.cow.fi/#/1/limit/0x853d955acef822db058eb8505911ed77f175b99e/0x76237bcfdbe8e06fb774663add96216961df4ff3",
   "labs-pendle-lp-apxusd-20270210":
     "https://app.pendle.finance/trade/pools/0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a/zap/in?chain=ethereum",
+  "labs-looping-pt-usd3-usdt": "https://app.pendle.finance/trade/looping?chain=ethereum",
 };
 assert(usd3.primaryUrl === primaryUrls["labs-pt-usd3"], "USD3 primary open URL");
 assert(usd3.primaryUrl.includes("view=pt"), "USD3 opens PT view");
 
 const fxb = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-fxb-20261231");
 const lp = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-pendle-lp-apxusd-20270210");
-[usd3, strc, fxb, lp].forEach((s) => {
+const looping = LABS_STABLE_STRATEGIES.find((s) => s.id === "labs-looping-pt-usd3-usdt");
+[usd3, strc, fxb, lp, looping].forEach((s) => {
   const mat = Date.parse(s.maturityAt);
   assert(isLabsStrategyLive(s, mat - 1), `${s.id} live 1ms before maturity`);
   assert(!isLabsStrategyLive(s, mat), `${s.id} hidden at maturity without redeploy`);
@@ -125,7 +130,7 @@ const merged = applyLabsStableCatalog(
   beforeMat,
 );
 assert(!merged.some((t) => isDisabledCurveMonadPool(t)), "curve monad excluded from catalog apply");
-assert(merged.filter((t) => t.strategyId).length === 4, "four live labs rows before STRCx expiry");
+assert(merged.filter((t) => t.strategyId).length === 5, "five live labs rows before STRCx expiry");
 assert(
   merged.some((t) => t.name === "Keep"),
   "unrelated stables remain",
@@ -136,7 +141,8 @@ assert(
   after
     .filter((t) => t.strategyId)
     .map((t) => t.strategyId)
-    .join(",") === "labs-pt-usd3,labs-fxb-20261231,labs-pendle-lp-apxusd-20270210",
+    .join(",") ===
+    "labs-pt-usd3,labs-fxb-20261231,labs-pendle-lp-apxusd-20270210,labs-looping-pt-usd3-usdt",
   "STRCx dropped after maturity, others remain",
 );
 
@@ -182,6 +188,10 @@ LABS_STABLE_STRATEGIES.forEach((s) => {
   });
   if (s.id === "labs-pendle-lp-apxusd-20270210") {
     assert(s.rateKind === "wallet-live", `${s.id} rateKind`);
+  } else if (s.id === "labs-looping-pt-usd3-usdt") {
+    assert(s.rateKind === "daily-average", `${s.id} rateKind`);
+    assert(s.leverage === 7.5, `${s.id} leverage`);
+    assert(s.launchDate === "2026-11-10", `${s.id} launch`);
   } else {
     assert(s.rateKind === "review-saved", `${s.id} rateKind`);
     assert(
@@ -203,7 +213,7 @@ const publicationUrls = {
   "labs-fxb-20261231": "https://t.me/c/2520601362/304/806",
 };
 LABS_STABLE_STRATEGIES.forEach((s) => {
-  if (s.id === "labs-pendle-lp-apxusd-20270210") {
+  if (s.id === "labs-pendle-lp-apxusd-20270210" || s.id === "labs-looping-pt-usd3-usdt") {
     assert(s.sourceUrl === "", `${s.id} has no review publication URL`);
     return;
   }
@@ -275,6 +285,12 @@ const identity = {
     marketAddress: "0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a",
     tokenAddress: "0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a",
   },
+  "labs-looping-pt-usd3-usdt": {
+    protocol: "Pendle",
+    chain: "Ethereum",
+    marketAddress: "0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e",
+    tokenAddress: "0x7f47c3e6b2c00fc4eb4d5ae50d0ab0ab6888eb4d",
+  },
 };
 Object.keys(identity).forEach((id) => {
   const row = merged.find((t) => t.strategyId === id);
@@ -325,6 +341,10 @@ const extraUrls = {
   ],
   "labs-pendle-lp-apxusd-20270210": [
     "https://app.pendle.finance/trade/markets/0x99f8c4d0038cda3adcbcd78eb37fcb5916d23e7a/swap?chain=ethereum&view=pt",
+  ],
+  "labs-looping-pt-usd3-usdt": [
+    "https://app.morpho.org/ethereum/variable/0x37a584c981f6f59f7532ae5565732ee54647773d425978eb94d4cd29c21ff53b",
+    "https://app.pendle.finance/trade/markets/0x4a5067c3ff1abb7449244025b0e37feaf77d8e3e/swap?chain=ethereum&view=pt",
   ],
 };
 LABS_STABLE_STRATEGIES.forEach((s) => {
@@ -413,6 +433,33 @@ assert(
   ) < 2,
   "realized APY annualizes cost vs current+claimable",
 );
+assert(isDailyAverageRate(looping), "looping uses daily average");
+assert(!isSavedReviewRate(looping), "looping is not a frozen review rate");
+assert(
+  Math.abs(loopingApyPct(0.15434904524130255, 0.08953867078044292, 7.5) - 57.5616) < 0.01,
+  "7.5x looping formula",
+);
+assert(
+  Math.abs(
+    meanApyPct(
+      [
+        { date: "2026-11-10", apyPct: 57.5616 },
+        { date: "2026-11-11", apyPct: 70.1287 },
+        { date: "2026-11-12", apyPct: 72.0328 },
+      ],
+      "2026-11-10",
+    ) - 66.57436666666667,
+  ) < 0.01,
+  "mean of daily snapshots from launch",
+);
+assert(
+  mergeDailyRows(
+    [{ date: "2026-11-10", apyPct: 1, source: "pendle-charts" }],
+    [{ date: "2026-11-10", apyPct: 2, source: "pendle-live" }],
+  )[0].apyPct === 2,
+  "live snapshot replaces the same UTC day",
+);
+assert(looping.maturityAt === "2026-12-17T00:00:00.000Z", "looping hides at USD3 expiry");
 assert(lp.costBasisUsd === 3512.69, "LP cost is the two zap-ins");
 assert(lp.wallet.toLowerCase() === "0x1fb07ac5643428710ee3bf5a73a4a66d0762f355", "LP wallet");
 assert(lp.maturityAt === "2027-02-11T00:00:00.000Z", "LP hides at Pendle expiry");

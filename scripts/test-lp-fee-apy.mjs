@@ -30,6 +30,12 @@ const k = parseKrystalLink(
   "https://cloud-ui.krystal.app/positions/8453/0x827922686190790b37229fd06084350e74485b72-71876224",
 );
 assert(k && k.nft === "71876224" && k.chainId === 8453, "krystal nft parse");
+assert(
+  parseKrystalLink(
+    "https://defi.krystal.app/positions/8453/0x827922686190790b37229fd06084350e74485b72-71876224",
+  ).nft === "71876224",
+  "defi.krystal.app parse",
+);
 
 const r = parseRevertLink("https://revert.finance/#/uniswap-position/optimism/1089241");
 assert(r && r.nft === "1089241" && r.exchange === "uniswapv3", "revert parse");

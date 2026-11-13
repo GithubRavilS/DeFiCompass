@@ -4,7 +4,7 @@
  */
 const { getNavigatorDataFromSheets } = require("../lib/sheet-get-data");
 
-module.exports = async (req, res) => {
+async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -28,4 +28,7 @@ module.exports = async (req, res) => {
       tools: [],
     });
   }
-};
+}
+
+handler.config = { maxDuration: 60 };
+module.exports = handler;

@@ -51,4 +51,14 @@ assert(
   "must use fees/deposits, not hodl.apr/roi/pnl",
 );
 
+const { applyCachedFeeApys } = require("../lib/lp-fee-apy.js");
+const aero = {
+  categoryId: "ethereum",
+  apy: "35.4",
+  link: "https://cloud-ui.krystal.app/positions/8453/0x827922686190790b37229fd06084350e74485b72-71876224",
+};
+applyCachedFeeApys([aero]);
+assert(aero.apySource === "fee-apr", "cache must replace Krystal ROI");
+assert(aero.apy === "12.3", "Aerodrome 71876224 fee APY from cache, not 35.4 ROI");
+
 console.log("test-lp-fee-apy: ok");

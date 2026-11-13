@@ -5889,7 +5889,20 @@
 
       function toolOpenUrl(tool) {
         if (tool && tool.primaryUrl) return String(tool.primaryUrl);
-        if (tool && tool.link) return String(tool.link);
+        var link = tool && tool.link ? String(tool.link) : "";
+        var aero = link.match(
+          /cloud-ui\.krystal\.app\/positions\/\d+\/(0x[a-fA-F0-9]{40})-(\d+)/i,
+        );
+        if (aero) {
+          var nfpm = aero[1].toLowerCase();
+          if (
+            nfpm === "0x827922686190790b37229fd06084350e74485b72" ||
+            nfpm === "0xe1f8cd9ac4e4a65f54f38a5cdafca44f6dd68b53"
+          ) {
+            return "https://aerodrome.finance/deposit?tokenId=" + aero[2];
+          }
+        }
+        if (link) return link;
         return "#";
       }
 

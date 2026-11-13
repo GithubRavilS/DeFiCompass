@@ -2,9 +2,11 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const {
   feeApyPct,
+  computeNavApyPct,
   parseKrystalLink,
   parseRevertLink,
   revertFeeApyFromData,
+  krystalFeeApyFromPos,
 } = require("../lib/lp-fee-apy.js");
 
 function assert(cond, msg) {
@@ -50,5 +52,53 @@ assert(
   computed && Math.abs(computed.apy - 9.59) < 0.1,
   "must use fees/deposits, not hodl.apr/roi/pnl",
 );
+
+assert(
+  Math.abs(computeNavApyPct(0.12, 1, 365 * 24) - 12) < 0.05,
+  "nav APY = earned/principal/year",
+);
+
+const now = Date.now();
+const minted = Math.floor(now / 1000) - 365 * 86400;
+const claimedAt = Math.floor(now / 1000) - 10 * 86400;
+const withCake = krystalFeeApyFromPos(
+  {
+    feePending: [{ quotes: { usd: { value: 0.02 } } }],
+    feesClaimed: [],
+    farmRewardsClaimed: [{ quotes: { usd: { value: 0.1 } } }],
+    farmRewardsPending: [],
+    totalDepositValue: 1,
+    createdTime: minted,
+    openedTime: claimedAt,
+  },
+  now,
+);
+assert(
+  withCake && Math.abs(withCake.apy - 12) < 0.3,
+  "CAKE claimed + fees, age from mint not last claim",
+);
+const feesOnly = krystalFeeApyFromPos(
+  {
+    feePending: [{ quotes: { usd: { value: 0.02 } } }],
+    feesClaimed: [],
+    totalDepositValue: 1,
+    createdTime: minted,
+    openedTime: minted,
+  },
+  now,
+);
+assert(withCake.apy > feesOnly.apy * 3, "farm must raise APY vs fees-only");
+
+const withFarmRevert = revertFeeApyFromData(
+  {
+    fees_value: "0.02",
+    rewards_value: "0.1",
+    deposits_value: "1",
+    age: "365",
+    first_mint_ts: minted,
+  },
+  now,
+);
+assert(withFarmRevert && withFarmRevert.apy > 10, "Revert APY includes farm rewards_value");
 
 console.log("test-lp-fee-apy: ok");
